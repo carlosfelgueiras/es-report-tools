@@ -41,8 +41,8 @@ class Task(TypedDict):
     id: str
     title: str
     committer: Committer | None
-    commits: list[Issue]
-    reviews: list[MR]
+    issues: list[Issue]
+    mrs: list[MR]
     coverage: list[CoverageScreenshot]
 
 
@@ -214,8 +214,8 @@ def parse_markdown_report(markdown: str) -> Report:
                     "id": task_id,
                     "title": title,
                     "committer": None,
-                    "commits": [],
-                    "reviews": [],
+                    "issues": [],
+                    "mrs": [],
                     "coverage": []
                 }
                 tasks.append(current_task)
@@ -258,10 +258,10 @@ def parse_markdown_report(markdown: str) -> Report:
                 elif current_task_section in ["commits", "reviews", "coverage"]:
                     if current_task_section == "commits":
                         commit_links = parse_commit_links(stripped)
-                        current_task["commits"].extend(commit_links)
+                        current_task["issues"].extend(commit_links)
                     elif current_task_section == "reviews":
                         review_links = parse_review_links(stripped)
-                        current_task["reviews"].extend(review_links)
+                        current_task["mrs"].extend(review_links)
                     elif current_task_section == "coverage":
                         coverage_links = parse_coverage_links(stripped)
                         current_task["coverage"].extend(coverage_links)

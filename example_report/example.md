@@ -2,13 +2,13 @@
 
 ## Members
 - Catarina Pereira, ist1109371, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109371)
-    + Issues assigned:[#1005](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/1005)
+    + Issues assigned:[#2](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/2)
 - Raquel Viana, ist1109878, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109878)
     + Issues assigned: [#4](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/4)
 
 ## Total Coverage
 
-+ [Total Test Coverage Screenshot](images/asas.png)
++ [Total Test Coverage Screenshot](images/TotalCoverage.png)
 
 ## Tasks
 

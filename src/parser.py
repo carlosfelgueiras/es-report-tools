@@ -2,55 +2,9 @@ import argparse
 import re
 import json
 from typing import Literal, TypedDict, cast
-
-
-class Issue(TypedDict):
-    id: int
-    url: str
-
-
-class MR(TypedDict):
-    id: int
-    url: str
-
-
-class CoverageScreenshot(TypedDict):
-    path: str
-
-
-class Member(TypedDict):
-    name: str
-    ist_id: str
-    gitlab: str
-    issues: list[Issue]
-
-
-class Committer(TypedDict):
-    name: str
-    ist_id: str
-    gitlab: str
-
-
-class Group(TypedDict):
-    campus: Literal["AL", "TP"]
-    number: int
-    members: list[Member]
-
-
-class Task(TypedDict):
-    id: str
-    title: str
-    committer: Committer | None
-    issues: list[Issue]
-    mrs: list[MR]
-    coverage: list[CoverageScreenshot]
-
-
-class Report(TypedDict):
-    group: Group
-    total_coverage: CoverageScreenshot
-    tasks: list[Task]
-
+import os
+from validation import validate_report
+from report_types import Report, Issue, MR, CoverageScreenshot, Member, Committer, Group, Task
 
 Section = Literal["members", "coverage", "tasks"] | None
 TaskSection = Literal["committer", "commits", "reviews", "coverage"] | None
@@ -292,6 +246,20 @@ def main() -> None:
         content = f.read()
 
     result = parse_markdown_report(content)
+
+    # Run validation
+        
+    errors = validate_report(
+        report=result,
+        markdown_path=args.input_path,
+        gitlab_token=os.getenv("GITLAB_TOKEN"),
+    )
+
+    if errors:
+        print("Validation errors:")
+        for e in errors:
+            print(f"- {e}")
+        exit(1)
 
     if args.to_json:
         print(json.dumps(result, indent=2))

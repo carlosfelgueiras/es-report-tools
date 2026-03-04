@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import quote, urlencode
@@ -57,6 +58,58 @@ def _get_mr(base: str, token: str, project_path: str, iid: int) -> dict | None:
     return data if status == 200 and isinstance(data, dict) else None
 
 
+def _is_merge_or_revert_commit(commit: dict) -> bool:
+    title = str(commit.get("title", "")).strip().lower()
+    message = str(commit.get("message", "")).strip().lower()
+    text = title or message
+    return text.startswith("merge ") or text.startswith("revert ")
+
+
+def _commit_closes_issue(message: str, issue_iid: int) -> bool:
+    pattern = re.compile(rf"closes\s*#{issue_iid}", re.IGNORECASE)
+    return pattern.search(message) is not None
+
+
+def _has_master_closing_commit(base: str, token: str, project_path: str, issue_iid: int) -> bool | None:
+    proj = quote(project_path, safe="")
+    per_page = 100
+    page = 1
+
+    while True:
+        params = {
+            "ref_name": "master",
+            "search": f"#{issue_iid}",
+            "per_page": per_page,
+            "page": page,
+            "since": "2026-02-18T17:59:02Z"
+        }
+        q = urlencode(params)
+        status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/repository/commits?{q}")
+
+        if status != 200 or not isinstance(data, list):
+            return None
+
+        if not data:
+            return False
+
+        for commit in data:
+            if not isinstance(commit, dict):
+                continue
+
+            if _is_merge_or_revert_commit(commit):
+                continue
+
+            message = str(commit.get("message", ""))
+            title = str(commit.get("title", ""))
+            if _commit_closes_issue(message or title, issue_iid):
+                return True
+
+        if len(data) < per_page:
+            return False
+
+        page += 1
+
+
 def _extract_usernames(users_field) -> set[str]:
     out: set[str] = set()
     if isinstance(users_field, list):
@@ -64,6 +117,58 @@ def _extract_usernames(users_field) -> set[str]:
             if isinstance(u, dict) and isinstance(u.get("username"), str):
                 out.add(u["username"])
     return out
+
+
+def _get_all_master_commits(base: str, token: str, project_path: str) -> list[dict] | None:
+    """Fetch all non-merge/non-revert commits from master branch.
+    
+    Returns:
+        list of commits or None if API error
+    """
+    proj = quote(project_path, safe="")
+    per_page = 100
+    page = 1
+    all_commits = []
+
+    while True:
+        params = {
+            "ref_name": "master",
+            "per_page": per_page,
+            "page": page,
+            "since": "2026-02-18T17:59:02Z"
+        }
+        q = urlencode(params)
+        status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/repository/commits?{q}")
+
+        if status != 200 or not isinstance(data, list):
+            return None
+
+        if not data:
+            break
+
+        for commit in data:
+            if not isinstance(commit, dict):
+                continue
+
+            if not _is_merge_or_revert_commit(commit):
+                all_commits.append(commit)
+
+        if len(data) < per_page:
+            break
+
+        page += 1
+
+    return all_commits
+
+
+def _lint_commit_message_with_cli(message: str) -> bool:
+    result = subprocess.run(
+        ["commitlint", "--hide-input", message],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
 
 
 # ----------------------------
@@ -85,6 +190,7 @@ def validate_report(
       2) Committer is a member of the group.
       3) Reviewer != committer, where committer is MR author (opener).
       4) Screenshot files must exist and be under images/ relative to the markdown folder.
+      5) In task issues, each issue must have at least one non-merge/non-revert commit in master that closes it.
     """
     errors: List[str] = []
 
@@ -97,6 +203,7 @@ def validate_report(
     project_path = f"es/es26-{expected_suffix}"
 
     member_ist_ids = {m["ist_id"] for m in report["group"]["members"]}
+    checked_task_issue_ids: set[int] = set()
 
     # ----------------------------
     # 4) Screenshots
@@ -181,6 +288,19 @@ def validate_report(
             else:
                 if not _issue_exists(gitlab_base, gitlab_token, project_path, issue["id"]):
                     errors.append(f"Task {task['id']}: issue does not exist (or no access): {issue['url']}")
+                elif issue["id"] not in checked_task_issue_ids:
+                    checked_task_issue_ids.add(issue["id"])
+                    has_master_close = _has_master_closing_commit(
+                        gitlab_base, gitlab_token, project_path, issue["id"]
+                    )
+                    if has_master_close is None:
+                        errors.append(
+                            f"Issue #{issue['id']}: could not verify closing commits in master branch."
+                        )
+                    elif not has_master_close:
+                        errors.append(
+                            f"Issue #{issue['id']}: no non-merge/non-revert commit in master closes this issue."
+                        )
 
         # MRs
         for mr in task["mrs"]:
@@ -215,6 +335,24 @@ def validate_report(
                 errors.append(f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers/assignees).")
             elif comm["ist_id"].lower() in {r.lower() for r in reviewers}:
                 errors.append(f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({comm['ist_id']}).")
+
+    # Get all non-merge/non-revert commits from master and validate with commitlint
+    commits = _get_all_master_commits(gitlab_base, gitlab_token, project_path)
+    if commits is not None:
+        for commit in commits:
+            message = str(commit.get("message", ""))
+            commit_hash = commit.get("id", "?")
+
+            try:
+                is_valid = _lint_commit_message_with_cli(message)
+            except FileNotFoundError:
+                errors.append("commitlint CLI not found. Install with: pip install commitlint")
+                break
+
+            if is_valid:
+                continue
+            
+            errors.append(f"Commit {commit_hash}: commitlint has not passed. Message: {message}")
 
     return _dedupe(errors)
 

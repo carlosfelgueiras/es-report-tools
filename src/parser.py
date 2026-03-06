@@ -3,7 +3,9 @@ import re
 import json
 from typing import Literal, TypedDict, cast
 import os
+from pathlib import Path
 from validation import validate_report
+from error_report_html import write_error_report_html
 from report_types import Report, Issue, MR, CoverageScreenshot, Member, Committer, Group, Task
 
 Section = Literal["members", "coverage", "tasks"] | None
@@ -22,6 +24,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--to-json",
         action="store_true",
         help="Print parsed report as JSON to stdout.",
+    )
+    cli.add_argument(
+        "--html-report",
+        default=None,
+        help="Path for HTML validation report output (default: <input_stem>_validation_report.html).",
     )
     return cli
 
@@ -247,6 +254,13 @@ def main() -> None:
 
     result = parse_markdown_report(content)
 
+    input_path = Path(args.input_path)
+    html_report_path = (
+        Path(args.html_report)
+        if args.html_report
+        else input_path.with_name(f"{input_path.stem}_validation_report.html")
+    )
+
     # Run validation
         
     errors = validate_report(
@@ -255,11 +269,15 @@ def main() -> None:
         gitlab_token=os.getenv("GITLAB_TOKEN"),
     )
 
+    tasks_for_report = [{"id": task["id"], "title": task["title"]} for task in result["tasks"]]
+    write_error_report_html(errors, tasks_for_report, str(html_report_path))
+
     if errors:
-        print("Validation errors:")
-        for e in errors:
-            print(f"- {e}")
+        print(f"Validation failed with {len(errors)} error(s).")
+        print(f"HTML report written to: {html_report_path}")
         exit(1)
+
+    print(f"Validation passed. HTML report written to: {html_report_path}")
 
     if args.to_json:
         print(json.dumps(result, indent=2))

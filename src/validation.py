@@ -58,6 +58,12 @@ def _get_mr(base: str, token: str, project_path: str, iid: int) -> dict | None:
     return data if status == 200 and isinstance(data, dict) else None
 
 
+def _get_mr_commits(base: str, token: str, project_path: str, iid: int) -> list[dict] | None:
+    proj = quote(project_path, safe="")
+    status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/merge_requests/{iid}/commits")
+    return data if status == 200 and isinstance(data, list) else None
+
+
 def _is_merge_or_revert_commit(commit: dict) -> bool:
     title = str(commit.get("title", "")).strip().lower()
     message = str(commit.get("message", "")).strip().lower()
@@ -117,48 +123,6 @@ def _extract_usernames(users_field) -> set[str]:
             if isinstance(u, dict) and isinstance(u.get("username"), str):
                 out.add(u["username"])
     return out
-
-
-def _get_all_master_commits(base: str, token: str, project_path: str) -> list[dict] | None:
-    """Fetch all non-merge/non-revert commits from master branch.
-    
-    Returns:
-        list of commits or None if API error
-    """
-    proj = quote(project_path, safe="")
-    per_page = 100
-    page = 1
-    all_commits = []
-
-    while True:
-        params = {
-            "ref_name": "master",
-            "per_page": per_page,
-            "page": page,
-            "since": "2026-02-18T17:59:02Z"
-        }
-        q = urlencode(params)
-        status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/repository/commits?{q}")
-
-        if status != 200 or not isinstance(data, list):
-            return None
-
-        if not data:
-            break
-
-        for commit in data:
-            if not isinstance(commit, dict):
-                continue
-
-            if not _is_merge_or_revert_commit(commit):
-                all_commits.append(commit)
-
-        if len(data) < per_page:
-            break
-
-        page += 1
-
-    return all_commits
 
 
 def _lint_commit_message_with_cli(message: str) -> bool:
@@ -319,6 +283,7 @@ def validate_report(
             # 3) MR author must be committer (case-insensitive)
             author = mr_data.get("author")
             author_username = author.get("username") if isinstance(author, dict) else None
+            
             if not isinstance(author_username, str):
                 errors.append(f"Task {task['id']}, MR !{mr['id']}: could not read MR author from API.")
             elif author_username.lower() != comm["ist_id"].lower():
@@ -336,23 +301,32 @@ def validate_report(
             elif comm["ist_id"].lower() in {r.lower() for r in reviewers}:
                 errors.append(f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({comm['ist_id']}).")
 
-    # Get all non-merge/non-revert commits from master and validate with commitlint
-    commits = _get_all_master_commits(gitlab_base, gitlab_token, project_path)
-    if commits is not None:
-        for commit in commits:
-            message = str(commit.get("message", ""))
-            commit_hash = commit.get("id", "?")
-
-            try:
-                is_valid = _lint_commit_message_with_cli(message)
-            except FileNotFoundError:
-                errors.append("commitlint CLI not found. Install with: pip install commitlint")
-                break
-
-            if is_valid:
-                continue
-            
-            errors.append(f"Commit {commit_hash}: commitlint has not passed. Message: {message}")
+            # Validate all commits in the MR
+            mr_commits = _get_mr_commits(gitlab_base, gitlab_token, project_path, mr['id'])
+            if mr_commits is None:
+                errors.append(f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits.")
+            else:
+                for commit in mr_commits:
+                    if not isinstance(commit, dict):
+                        continue
+                    
+                    commit_sha = commit.get("short_id", commit.get("id", "unknown"))
+                    
+                    # Validate conventional commits format
+                    commit_message = commit.get("message", "")
+                    if commit_message and not _lint_commit_message_with_cli(commit_message):
+                        errors.append(
+                            f"Task {task['id']}, MR !{mr['id']}, commit {commit_sha}: "
+                            f"commit message does not follow conventional commits format."
+                        )
+                    
+                    # Validate commit author email domain
+                    commit_author_email = commit.get("author_email", "")
+                    if not commit_author_email.lower().endswith("@tecnico.ulisboa.pt"):
+                        errors.append(
+                            f"Task {task['id']}, MR !{mr['id']}, commit {commit_sha}: "
+                            f"commit author email must be from Técnico, got {commit_author_email}."
+                        )
 
     return _dedupe(errors)
 

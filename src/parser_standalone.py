@@ -132,12 +132,15 @@ def parse_issue_line(line: str) -> list[Issue]:
     return issues
 
 
-def parse_task_header(line: str) -> tuple[str, str] | None:
-    # ### T1.X - Title
-    match = re.match(r"^###\s*(T[^-\s]+)\s*-\s*(.+)$", line.strip())
+def parse_task_header(line: str) -> tuple[str, str]:
+    # ### T1.1 - Title
+    match = re.match(r"^###\s+(T\d+\.\d+)\s*-\s*(\S.*\S|\S)$", line.strip())
     if not match:
-        return None
-    return match.group(1).strip(), match.group(2).strip()
+        raise ValueError(
+            "Invalid task header syntax. Expected format: "
+            "'### T<number>.<number> - <title>'."
+        )
+    return match.group(1), match.group(2)
 
 
 def parse_coverage_links(line: str) -> list[CoverageScreenshot]:
@@ -207,18 +210,16 @@ def parse_markdown_report(markdown: str) -> Report:
             current_section = "tasks"
 
         elif stripped.startswith("###"):
-            parsed_task = parse_task_header(stripped)
-            if parsed_task is not None:
-                task_id, title = parsed_task
-                current_task = {
-                    "id": task_id,
-                    "title": title,
-                    "committer": None,
-                    "commits": [],
-                    "reviews": [],
-                    "coverage": []
-                }
-                tasks.append(current_task)
+            task_id, title = parse_task_header(stripped)
+            current_task = {
+                "id": task_id,
+                "title": title,
+                "committer": None,
+                "commits": [],
+                "reviews": [],
+                "coverage": []
+            }
+            tasks.append(current_task)
 
         elif current_section == "members":
             if stripped.startswith("- "):

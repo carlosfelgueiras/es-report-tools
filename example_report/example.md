@@ -1,10 +1,10 @@
-# ES2026 P1 Submission, Group AL-29
+# ES2026 P1 Submission, Group AL-58
 
 ## Members
-- Catarina Pereira, ist1109371, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109371)
-    + Issues assigned:[#2](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/2)
-- Raquel Viana, ist1109878, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109878)
-    + Issues assigned: [#4](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/4)
+- Tomás Tempera, ist1110350, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1110350)
+    + Issues assigned:[#1](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/1), [#3](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/3), [#7](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/7)
+- Diogo Passinhas, ist1109554, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109554)
+    + Issues assigned: [#4](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/4),
 
 ## Total Coverage
 
@@ -12,16 +12,66 @@
 
 ## Tasks
 
-### T1.1 - Implement and test class Shift
+### T1.1 - Implement Shift class with constructor, attributes, and unit tests
 
 - Committer
-  + Catarina Pereira, ist1109371, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109371)
-- Commit
-  + [#15](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/issues/15)
-- Review (if more than one, one per line, where the last line contains the more recent)
-  + [MR #1](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-AL-29/-/merge_requests/1)
-- Coverage (if more than one, one per line, where the last line contains the more recent)
-  + [Invariant Coverage Screenshot](images/createShift.png)
+  + Tomás Tempera, ist1110350, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1110350)
+- Commit 
+  + [#1](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/1)
+- Review 
+  + [MR #1](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/1)
+- Coverage 
+  + [Invariant Coverage Screenshot](images/shiftConstructor.png)
+
+
+### T1.2 - Implement and test attribute length invariant in Shift class
+
+- Committer
+  + Diogo Passinhas, ist1109554, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109554)
+- Commit 
+  + [#4](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/4)
+- Review 
+  + [MR #2](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/2)
+- Coverage 
+  + [Invariant Coverage Screenshot](images/shiftAttributeRequirements.png)
+
+
+### T1.3 - Implement and test participants limit invariant in Shift class
+
+- Committer
+  + Tomás Tempera, ist1110350, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1110350)
+- Commit 
+  + [#7](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/7)
+- Review 
+  + [MR #3](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/3)
+- Coverage 
+  + [Invariant Coverage Screenshot](images/shiftParticipantsLimitPositive.png)
+
+
+### T1.4 - Implement and test start date invariant in Shift class
+
+- Committer
+  + Tomás Tempera, ist1110350, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1110350)
+- Commit 
+  + [#3](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/3)
+- Review 
+  + [MR #4](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/4)
+- Coverage 
+  + [Invariant Coverage Screenshot](images/shiftStartTimeBeforeEndTime.png)
+
+
+### T1.5 - Implement and test approved activity invariant in Shift class
+
+- Committer
+  + Diogo Passinhas, ist1109554, [GitLab link](https://gitlab.rnl.tecnico.ulisboa.pt/ist1109554)
+- Commit 
+  + [#8](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/issues/8)
+- Review 
+  + [MR #5](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/5) 
+  + [MR #7](https://gitlab.rnl.tecnico.ulisboa.pt/es/es26-al-58/-/merge_requests/7)
+- Coverage 
+  + Before(MR #5): [Incomplete Coverage](images/shiftIncompleteActivityInvariant.png)
+  + After(MR #7): [Complete Coverage](images/shiftActivityMustBeApproved.png)
 
 
 

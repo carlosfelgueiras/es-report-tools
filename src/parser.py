@@ -269,11 +269,17 @@ def main() -> None:
         gitlab_token=os.getenv("GITLAB_TOKEN"),
     )
 
+    total_task_errors = 0
+    for e in errors["task_errors"].values():
+        total_task_errors += len(e)
+
+    total_errors = len(errors["global_errors"]) + total_task_errors
+
     tasks_for_report = [{"id": task["id"], "title": task["title"]} for task in result["tasks"]]
-    write_error_report_html(errors, tasks_for_report, str(html_report_path))
+    write_error_report_html(errors, tasks_for_report, str(html_report_path), total_errors)
 
     if errors:
-        print(f"Validation failed with {len(errors)} error(s).")
+        print(f"Validation failed with {total_errors} error(s).")
         print(f"HTML report written to: {html_report_path}")
         exit(1)
 

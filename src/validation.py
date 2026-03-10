@@ -67,6 +67,40 @@ def _commit_closes_issue(message: str, issue_iid: int) -> bool:
     return pattern.search(message) is not None
 
 
+def _get_all_master_commits(base: str, token: str, project_path: str) -> list[dict] | None:
+    proj = quote(project_path, safe="")
+    per_page = 100
+    page = 1
+    all_commits = []
+
+    while True:
+        params = {
+            "ref_name": "master",
+            "per_page": per_page,
+            "page": page,
+            "since": "2026-02-18T17:59:02Z",
+        }
+        q = urlencode(params)
+        status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/repository/commits?{q}")
+
+        if status != 200 or not isinstance(data, list):
+            return None
+
+        if not data:
+            break
+
+        for commit in data:
+            if isinstance(commit, dict):
+                all_commits.append(commit)
+
+        if len(data) < per_page:
+            break
+
+        page += 1
+
+    return all_commits
+
+
 def _extract_usernames(users_field) -> set[str]:
     out: set[str] = set()
     if isinstance(users_field, list):
@@ -268,6 +302,7 @@ def validate_report(
                 ))
             else:
                 has_closes_reference = False
+                has_conventional_commit = False
                 for commit in mr_commits:
                     if not isinstance(commit, dict):
                         continue
@@ -276,11 +311,8 @@ def validate_report(
                     
                     # Validate conventional commits format
                     commit_message = str(commit.get("message", "") or "")
-                    if commit_message and not _lint_commit_message_with_cli(commit_message):
-                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT_MESSAGE_FORMAT,
-                            f"Task {task['id']}, MR !{mr['id']}, commit {commit_sha}: "
-                            f"commit message does not follow conventional commits format."
-                        ))
+                    if commit_message and _lint_commit_message_with_cli(commit_message):
+                        has_conventional_commit = True
 
                     if task_issue_id is not None and _commit_closes_issue(commit_message, task_issue_id):
                         has_closes_reference = True
@@ -293,10 +325,21 @@ def validate_report(
                             f"commit author email must be from Técnico, got {commit_author_email}."
                         ))
 
-                if task_issue_id is not None and not has_closes_reference:
-                    errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT_NO_CLOSES,
-                        f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
-                        f"'Closes #{task_issue_id}'."
+                if not has_conventional_commit:
+                    errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT_MESSAGE_FORMAT,
+                        f"Task {task['id']}, MR !{mr['id']}: no commit message follows conventional commits format."
                     ))
+
+                if task_issue_id is not None and not has_closes_reference:
+                    master_commits = _get_all_master_commits(gitlab_base, gitlab_token, project_path)
+                    master_closes = master_commits is not None and any(
+                        _commit_closes_issue(str(c.get("message", "") or ""), task_issue_id)
+                        for c in master_commits
+                    )
+                    if not master_closes:
+                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT_NO_CLOSES,
+                            f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
+                            f"'Closes #{task_issue_id}'."
+                        ))
 
     return errors

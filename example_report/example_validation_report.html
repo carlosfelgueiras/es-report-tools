@@ -10,20 +10,20 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f5f5;
             color: #333;
             line-height: 1.6;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
-        
+
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -32,36 +32,36 @@
             margin-bottom: 30px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
         }
-        
+
         .stats {
             display: flex;
             gap: 30px;
             margin-top: 20px;
             flex-wrap: wrap;
         }
-        
+
         .stat {
             background: rgba(255, 255, 255, 0.2);
             padding: 15px 25px;
             border-radius: 5px;
         }
-        
+
         .stat-number {
             font-size: 2em;
             font-weight: bold;
             color: #fff;
         }
-        
+
         .stat-label {
             font-size: 0.9em;
             opacity: 0.9;
         }
-        
+
         section {
             background: white;
             margin-bottom: 30px;
@@ -69,7 +69,7 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-        
+
         section h2 {
             background: #f8f9fa;
             padding: 20px;
@@ -77,17 +77,17 @@
             font-size: 1.5em;
             color: #333;
         }
-        
+
         .table-wrapper {
             overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9em;
         }
-        
+
         th {
             background: #f8f9fa;
             padding: 12px;
@@ -96,37 +96,39 @@
             border-bottom: 2px solid #dee2e6;
             color: #495057;
         }
-        
+
         td {
             padding: 12px;
             border-bottom: 1px solid #dee2e6;
         }
-        
+
         tr:hover {
             background: #f8f9fa;
         }
-        
+
         .checkmark {
             color: #28a745;
             font-weight: bold;
             font-size: 1.2em;
+            text-align: center;
         }
-        
+
         .x-mark {
             color: #dc3545;
             font-weight: bold;
             font-size: 1.2em;
+            text-align: center;
         }
-        
+
         .task-name {
             font-weight: 600;
             color: #667eea;
         }
-        
+
         .error-list {
             padding: 20px;
         }
-        
+
         .task-section {
             margin-bottom: 30px;
             padding: 20px;
@@ -134,24 +136,24 @@
             border-left: 4px solid #667eea;
             border-radius: 4px;
         }
-        
+
         .task-section h3 {
             color: #667eea;
             margin-bottom: 15px;
             font-size: 1.1em;
         }
-        
+
         .error-type {
             margin: 15px 0;
             padding-left: 20px;
         }
-        
+
         .error-type strong {
             color: #764ba2;
             display: block;
             margin-bottom: 8px;
         }
-        
+
         .error-message {
             background: white;
             padding: 8px 12px;
@@ -162,14 +164,14 @@
             color: #555;
             word-break: break-word;
         }
-        
+
         .no-errors {
             padding: 40px;
             text-align: center;
             color: #28a745;
             font-size: 1.2em;
         }
-        
+
         footer {
             text-align: center;
             padding: 20px;
@@ -184,16 +186,23 @@
             <h1>📋 Validation Error Report</h1>
             <div class="stats">
                 <div class="stat">
-                    <div class="stat-number">0</div>
+                    <div class="stat-number">4</div>
                     <div class="stat-label">Total Errors</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">0/1</div>
+                    <div class="stat-number">3/5</div>
                     <div class="stat-label">Affected Tasks</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Global Errors</div>
                 </div>
             </div>
         </header>
-        
+        <section>
+            <h2>Global Errors</h2>
+            <div class="no-errors">✓ No global errors found!</div>
+        </section>
         <section>
             <h2>Error Overview Table</h2>
             <div class="table-wrapper">
@@ -202,13 +211,97 @@
                         <tr>
                             <th>Task ID</th>
                             <th>Task Title</th>
-                            <th>Missing Committer</th><th>Committer Not Member</th><th>Committer Profile Format</th><th>Committer Doesn't Exist</th><th>Issue URL Format</th><th>Issue Doesn't Exist</th><th>MR URL Format</th><th>MR Doesn't Exist</th><th>MR Author ≠ Committer</th><th>MR No Reviewer</th><th>Reviewer = Committer</th><th>Commits Fetch Failed</th><th>Commit Not Conventional</th><th>Commit Missing 'Closes #'</th><th>Commit Email Not Técnico</th><th>Screenshot Missing</th><th>Screenshot Path Format</th>
+                            <th>Missing committer</th><th>Committer is not a member</th><th>Committer URL format</th><th>Committer does not exist</th><th>Issue URL format</th><th>Issue does not exist</th><th>MR URL format</th><th>MR does not exist</th><th>MR Author ≠ Committer</th><th>MR has no reviewer</th><th>Reviewer = Committer</th><th>Commits fetch failed</th><th>Commit not conventional</th><th>Commit missing &#x27;Closes #&#x27;</th><th>Commit Email Not Técnico</th><th>Screenshot missing</th><th>Screenshot path format</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td><strong>T1.1</strong></td>
-                            <td class='task-name'>Implement and test class Shift</td>
+                            <td class='task-name'>Implement Shift class with constructor, attributes, and unit tests</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='x-mark'>✗</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                        </tr>
+                        <tr>
+                            <td><strong>T1.2</strong></td>
+                            <td class='task-name'>Implement and test attribute length invariant in Shift class</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                        </tr>
+                        <tr>
+                            <td><strong>T1.3</strong></td>
+                            <td class='task-name'>Implement and test participants limit invariant in Shift class</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='x-mark'>✗</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                        </tr>
+                        <tr>
+                            <td><strong>T1.4</strong></td>
+                            <td class='task-name'>Implement and test start date invariant in Shift class</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='x-mark'>✗</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='x-mark'>✗</td>
+                            <td class='checkmark'>✓</td>
+                            <td class='checkmark'>✓</td>
+                        </tr>
+                        <tr>
+                            <td><strong>T1.5</strong></td>
+                            <td class='task-name'>Implement and test approved activity invariant in Shift class</td>
                             <td class='checkmark'>✓</td>
                             <td class='checkmark'>✓</td>
                             <td class='checkmark'>✓</td>
@@ -232,7 +325,45 @@
             </div>
         </section>
         <section>
-            <div class="no-errors">✓ No errors found!</div>
+            <h2>Detailed Error Summary</h2>
+            <div class="error-list">
+                <div class="task-section">
+                    <h3>Task T1.1: Implement Shift class with constructor, attributes, and unit tests</h3>
+                    <p><strong>1 error(s)</strong></p>
+                    <div class="error-type">
+                        <strong>• Commit Email Not Técnico</strong>
+                        <div class="error-message">Task T1.1, MR !1, commit 945afbc6: commit author email must be from Técnico, got tomas.tempera@gmail.com.</div>
+                    </div>
+                </div>
+                <div class="task-section">
+                    <h3>Task T1.2: Implement and test attribute length invariant in Shift class</h3>
+                    <p><strong>0 error(s)</strong></p>
+                </div>
+                <div class="task-section">
+                    <h3>Task T1.3: Implement and test participants limit invariant in Shift class</h3>
+                    <p><strong>1 error(s)</strong></p>
+                    <div class="error-type">
+                        <strong>• Commit Email Not Técnico</strong>
+                        <div class="error-message">Task T1.3, MR !3, commit cc37d9f7: commit author email must be from Técnico, got tomas.tempera@gmail.com.</div>
+                    </div>
+                </div>
+                <div class="task-section">
+                    <h3>Task T1.4: Implement and test start date invariant in Shift class</h3>
+                    <p><strong>2 error(s)</strong></p>
+                    <div class="error-type">
+                        <strong>• Commit Email Not Técnico</strong>
+                        <div class="error-message">Task T1.4, MR !4, commit 1c6ea2e9: commit author email must be from Técnico, got tomas.tempera@gmail.com.</div>
+                    </div>
+                    <div class="error-type">
+                        <strong>• Commit not conventional</strong>
+                        <div class="error-message">Task T1.4, MR !4: no commit message follows conventional commits format.</div>
+                    </div>
+                </div>
+                <div class="task-section">
+                    <h3>Task T1.5: Implement and test approved activity invariant in Shift class</h3>
+                    <p><strong>0 error(s)</strong></p>
+                </div>
+            </div>
         </section>
         <footer>
             <p>Generated automatically by es-report-tools validation system</p>

@@ -67,6 +67,39 @@ def _commit_closes_issue(message: str, issue_iid: int) -> bool:
     return pattern.search(message) is not None
 
 
+def _get_mr_java_diffs(base: str, token: str, project_path: str, iid: int) -> list[str] | None:
+    """Return all added/modified .java file paths in a MR. Returns None on API error."""
+    proj = quote(project_path, safe="")
+    per_page = 100
+    page = 1
+    java_files: list[str] = []
+
+    while True:
+        q = urlencode({"per_page": per_page, "page": page})
+        status, data = _gitlab_get_json(base, token, f"/api/v4/projects/{proj}/merge_requests/{iid}/diffs?{q}")
+
+        if status != 200 or not isinstance(data, list):
+            return None
+
+        if not data:
+            break
+
+        for diff in data:
+            if not isinstance(diff, dict):
+                continue
+
+            new_path = str(diff.get("new_path", ""))
+            if new_path.endswith(".java") and not diff.get("deleted_file", False):
+                java_files.append(new_path)
+
+        if len(data) < per_page:
+            break
+
+        page += 1
+
+    return java_files
+
+
 def _get_all_master_commits(base: str, token: str, project_path: str) -> list[dict] | None:
     proj = quote(project_path, safe="")
     per_page = 100
@@ -296,6 +329,7 @@ def validate_report(
 
             # Validate all commits in the MR
             mr_commits = _get_mr_commits(gitlab_base, gitlab_token, project_path, mr['id'])
+            mr_java_diffs = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, mr['id'])
             if mr_commits is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT_FETCH_FAILED,
                     f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits."

@@ -1,0 +1,113 @@
+{
+    "T1.1": [
+        "Activity.java",
+        "ActivityDto.java",
+        "Shift.java",
+        "ShiftDto.java",
+        "ShiftRepository.java"
+    ],
+    "T1.2": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.3": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.4": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.5": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.6": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.7": [
+        "ErrorMessage.java",
+        "Shift.java"
+    ],
+    "T1.8": [
+        "ShiftService.java",
+        "ShiftRepository.java"
+    ],
+    "T1.9": [
+        "ShiftController.java",
+        "ShiftRepository.java",
+        "ActivityDto.java"
+    ],
+    "T1.10": [
+        "ShiftService.java",
+        "ShiftRepository.java"
+    ],
+    "T1.11": [
+        "ShiftController.java",
+        "ShiftRepository.java"
+    ],
+    "T1.12": [
+        "EnrollmentController.java",
+        "EnrollmentService.java",
+        "Enrollment.java",
+        "EnrollmentDto.java",
+        "Shift.java",
+        "ErrorMessage.java"
+    ],
+    "T1.13": [
+        "Enrollment.java",
+        "ErrorMessage.java"
+    ],
+    "T1.14": [
+        "Enrollment.java",
+        "ErrorMessage.java"
+    ],
+    "T1.15": [
+        "Activity.java",
+        "ActivityDto.java",
+        "EnrollmentController.java",
+        "EnrollmentRepository.java",
+        "EnrollmentService.java",
+        "Enrollment.java"
+    ],
+    "T1.16": [
+        "HEPermissionEvaluator.java",
+        "Participation.java",
+        "ParticipationDto.java",
+        "ParticipationController.java",
+        "ParticipationService.java",
+        "Shift.java",
+        "ErrorMessage.java"
+    ],
+    "T1.17": [
+        "ErrorMessage.java",
+        "Participation.java"
+    ],
+    "T1.18": [
+        "Activity.java",
+        "ActivityDto.java",
+        "EnrollmentDto.java",
+        "ParticipationRepository.java",
+        "ParticipationService.java",
+        "ParticipationController.java",
+        "Participation.java",
+        "HEPermissionEvaluator.java"
+    ],
+    "T1.19": [
+        "Enrollment.java",
+        "Participation.java",
+        "ParticipationController.java",
+        "ParticipationService.java"
+    ],
+    "T1.20": [
+        "ErrorMessage.java",
+        "Participation.java"
+    ],
+    "T1.21": [
+        "ParticipationRepository.java",
+        "ParticipationService.java",
+        "Participation.java",
+        "Volunteer.java"
+    ]
+}

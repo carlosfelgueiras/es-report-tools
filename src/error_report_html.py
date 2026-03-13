@@ -1,7 +1,7 @@
 """HTML error report generator."""
 
 from html import escape
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from error_report import (
     TaskErrorType,
@@ -13,6 +13,7 @@ def write_error_report_html(
     tasks: List[dict],
     output_file: str,
     total_errors: int,
+    grade_config: Optional[dict] = None,
 ) -> None:
     """
     Write validation errors to an HTML report file.
@@ -24,6 +25,7 @@ def write_error_report_html(
         tasks: List of task dicts with 'id' and 'title' keys
         output_file: Path to output HTML file
         total_errors: Total number of errors found
+        grade_config: Optional dictionary with weights per TaskErrorType string
     """
     global_errors = errors["global_errors"]
     task_errors = errors["task_errors"]
@@ -266,8 +268,12 @@ def write_error_report_html(
                         <tr>
                             <th>Task ID</th>
                             <th>Task Title</th>
-                            {"".join(f"<th>{escape(et.value)}</th>" for et in error_types)}
-                        </tr>
+                            {"".join(f"<th>{escape(et.value)}</th>" for et in error_types)}"""
+
+    if grade_config:
+        html_content += "                            <th>Grade</th>\n"
+
+    html_content += """                        </tr>
                     </thead>
                     <tbody>
 """
@@ -281,17 +287,36 @@ def write_error_report_html(
         html_content += f"                            <td class='task-name'>{escape(task_title)}</td>\n"
 
         for error_type in error_types:
+            has_error = False
             if task_id in task_errors:
                 errors_for_type = [
                     te for te in task_errors[task_id]
                     if te.error_type == error_type
                 ]
                 if errors_for_type:
-                    html_content += "                            <td class='x-mark'>✗</td>\n"
-                else:
-                    html_content += "                            <td class='checkmark'>✓</td>\n"
+                    has_error = True
+
+            if has_error:
+                html_content += "                            <td class='x-mark'>✗</td>\n"
             else:
                 html_content += "                            <td class='checkmark'>✓</td>\n"
+
+        if grade_config:
+            task_grade = 0
+            for error_type in error_types:
+                has_error = False
+                if task_id in task_errors:
+                    errors_for_type = [
+                        te for te in task_errors[task_id]
+                        if te.error_type == error_type
+                    ]
+                    if errors_for_type:
+                        has_error = True
+                
+                if not has_error:
+                    task_grade += grade_config.get(error_type.value, 0)
+            
+            html_content += f"                            <td><strong>{task_grade}%</strong></td>\n"
 
         html_content += "                        </tr>\n"
 

@@ -3,9 +3,11 @@ import re
 import json
 from typing import Literal, TypedDict, cast
 import os
+import csv
 from pathlib import Path
 from validation import validate_report
 from error_report_html import write_error_report_html
+from error_report import TaskErrorType
 from report_types import Report, Issue, MR, CoverageScreenshot, Member, Committer, Group, Task
 
 Section = Literal["members", "coverage", "tasks"] | None
@@ -29,6 +31,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--html-report",
         default=None,
         help="Path for HTML validation report output (default: <input_stem>_validation_report.html).",
+    )
+    cli.add_argument(
+        "--grade-config",
+        default=None,
+        help="Path to JSON file containing grade weights for task categories.",
+    )
+    cli.add_argument(
+        "--csv-report",
+        default=None,
+        help="Path for CSV grade report output.",
     )
     return cli
 
@@ -275,8 +287,42 @@ def main() -> None:
 
     total_errors = len(errors["global_errors"]) + total_task_errors
 
+    grade_config = None
+    if args.grade_config:
+        try:
+            with open(args.grade_config, "r", encoding="utf-8") as f:
+                grade_config = json.load(f)
+        except Exception as e:
+            print(f"Error loading grade config: {e}")
+            exit(1)
+
     tasks_for_report = [{"id": task["id"], "title": task["title"]} for task in result["tasks"]]
-    write_error_report_html(errors, tasks_for_report, str(html_report_path), total_errors)
+    write_error_report_html(errors, tasks_for_report, str(html_report_path), total_errors, grade_config=grade_config)
+
+    if args.csv_report and grade_config:
+        error_types = list(TaskErrorType)
+        task_errors = errors["task_errors"]
+        grades = {}
+        for task in result["tasks"]:
+            task_id = str(task["id"])
+            task_grade = 0
+            for error_type in error_types:
+                has_error = False
+                if task_id in task_errors:
+                    errors_for_type = [te for te in task_errors[task_id] if te.error_type == error_type]
+                    if errors_for_type:
+                        has_error = True
+                if not has_error:
+                    task_grade += grade_config.get(error_type.value, 0)
+            
+            grades[task_id] = task_grade / 100.0
+
+        with open(args.csv_report, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=";")
+            # Create a header row with the task IDs
+            writer.writerow([t['id'] for t in result["tasks"]])
+            # Output the single row of decimal grades, formatted with a comma for Excel
+            writer.writerow([str(grades[str(t['id'])]).replace(".", ",") for t in result["tasks"]])
 
     if errors:
         print(f"Validation failed with {total_errors} error(s).")

@@ -1,6 +1,7 @@
 # validation.py
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import requests
@@ -12,6 +13,7 @@ from report_types import Report
 from error_report import GlobalError, TaskError, GlobalErrorType, TaskErrorType
 
 GITLAB_BASE = "https://gitlab.rnl.tecnico.ulisboa.pt"
+FILES_PER_TASK_PATH = Path(__file__).with_name("files_per_task.json")
 
 # Strict formats
 IMAGE_RE = re.compile(r"^images/.+\.png$")
@@ -153,6 +155,31 @@ def _lint_commit_message_with_cli(message: str) -> bool:
     return result.returncode == 0
 
 
+def _load_expected_files_per_task() -> dict[str, set[str]]:
+    """Load expected Java file names per task from files_per_task.json."""
+    try:
+        with FILES_PER_TASK_PATH.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+    if not isinstance(raw, dict):
+        return {}
+
+    expected_files: dict[str, set[str]] = {}
+    for task_id, files in raw.items():
+        if not isinstance(task_id, str) or not isinstance(files, list):
+            continue
+
+        expected_files[task_id] = {
+            file_name.strip()
+            for file_name in files
+            if isinstance(file_name, str) and file_name.strip()
+        }
+
+    return expected_files
+
+
 # ----------------------------
 # Main validation
 # ----------------------------
@@ -172,7 +199,8 @@ def validate_report(
       2) Committer is a member of the group.
       3) Reviewer != committer, where committer is MR author (opener).
       4) Screenshot files must exist and be under images/ relative to the markdown folder.
-    5) In each MR, at least one commit message must contain "Closes #<issue_id>" for the task issue, each message must be a convetiona commit and the e-mail must be from Técnico.
+            5) In each MR, at least one commit message must contain "Closes #<issue_id>" for the task issue, each message must be a convetiona commit and the e-mail must be from Técnico.
+            6) For each task, only the first MR (lowest id) can change the Java files listed in files_per_task.json.
     """
     errors: dict[str, list] = {"global_errors": [], "task_errors": {}}
 
@@ -185,6 +213,8 @@ def validate_report(
     project_path = f"es/es26-{expected_suffix}"
 
     member_ist_ids = {m["ist_id"] for m in report["group"]["members"]}
+    expected_files_per_task = _load_expected_files_per_task()
+
     # ----------------------------
     # 4) Screenshots
     # ----------------------------
@@ -289,6 +319,7 @@ def validate_report(
                     ))
 
         # MRs
+        first_mr = min(task["mrs"], key=lambda mr: mr["id"]) if task["mrs"] else None
         for mr in task["mrs"]:
             expected_mr_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/merge_requests/{mr['id']}"
             if mr["url"].lower() != expected_mr_url.lower():
@@ -329,7 +360,6 @@ def validate_report(
 
             # Validate all commits in the MR
             mr_commits = _get_mr_commits(gitlab_base, gitlab_token, project_path, mr['id'])
-            mr_java_diffs = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, mr['id'])
             if mr_commits is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                     f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits."
@@ -374,6 +404,36 @@ def validate_report(
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
                             f"'Closes #{task_issue_id}'."
+                        ))
+
+        # Check changed Java files only for the first MR (lowest MR id)
+        if first_mr is not None:
+            expected_task_files = expected_files_per_task.get(task["id"])
+            if expected_task_files is None:
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
+                    f"Task {task['id']}, MR !{first_mr['id']}: no expected files configured in files_per_task.json."
+                ))
+            else:
+                changed_java_paths = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, first_mr["id"])
+                if changed_java_paths is None:
+                    errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
+                        f"Task {task['id']}, MR !{first_mr['id']}: could not fetch changed Java files."
+                    ))
+                else:
+                    changed_java_files = {Path(path).name for path in changed_java_paths}
+                    missing_files = sorted(expected_task_files - changed_java_files)
+                    unexpected_files = sorted(changed_java_files - expected_task_files)
+
+                    if missing_files:
+                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
+                            f"Task {task['id']}, MR !{first_mr['id']}: missing expected files from files_per_task.json: "
+                            f"{', '.join(missing_files)}."
+                        ))
+
+                    if unexpected_files:
+                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
+                            f"Task {task['id']}, MR !{first_mr['id']}: contains unexpected changed files not listed in "
+                            f"files_per_task.json: {', '.join(unexpected_files)}."
                         ))
 
     return errors

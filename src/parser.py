@@ -296,7 +296,7 @@ def main() -> None:
             print(f"Error loading grade config: {e}")
             exit(1)
 
-    tasks_for_report = [{"id": task["id"], "title": task["title"]} for task in result["tasks"]]
+    tasks_for_report = result["tasks"]
     write_error_report_html(errors, tasks_for_report, str(html_report_path), total_errors, grade_config=grade_config)
 
     if args.csv_report and grade_config:

@@ -421,19 +421,24 @@ def validate_report(
                     ))
                 else:
                     changed_java_files = {Path(path).name for path in changed_java_paths}
-                    missing_files = sorted(expected_task_files - changed_java_files)
-                    unexpected_files = sorted(changed_java_files - expected_task_files)
+                    expected_task_files_ci = {file_name.lower() for file_name in expected_task_files}
 
-                    if missing_files:
-                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                            f"Task {task['id']}, MR !{first_mr['id']}: missing expected files from files_per_task.json: "
-                            f"{', '.join(missing_files)}."
-                        ))
+                    # Match files case-insensitively, but keep original casing for reporting.
+                    changed_by_lower: dict[str, str] = {}
+                    for file_name in sorted(changed_java_files):
+                        changed_by_lower.setdefault(file_name.lower(), file_name)
+
+                    unexpected_files = sorted(
+                        original_name
+                        for lower_name, original_name in changed_by_lower.items()
+                        if lower_name not in expected_task_files_ci
+                    )
 
                     if unexpected_files:
+                        unexpected_count = len(unexpected_files)
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                            f"Task {task['id']}, MR !{first_mr['id']}: contains unexpected changed files not listed in "
-                            f"files_per_task.json: {', '.join(unexpected_files)}."
+                            f"Task {task['id']}, MR !{first_mr['id']}: contains {unexpected_count} unexpected changed "
+                            f"file(s) not listed in files_per_task.json: {', '.join(unexpected_files)}."
                         ))
 
     return errors

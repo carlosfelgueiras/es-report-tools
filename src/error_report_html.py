@@ -22,7 +22,8 @@ def write_error_report_html(
         errors: Dict containing:
             - global_errors: List[GlobalError]
             - task_errors: Dict[str, List[TaskError]]
-        tasks: List of task dicts with 'id', 'title', and optional 'mrs' keys
+        tasks: List of task dicts with 'id', 'title', optional 'mrs', and optional
+            'committer' (name/ist_id/gitlab)
         output_file: Path to output HTML file
         total_errors: Total number of errors found
         grade_config: Optional dictionary with weights per TaskErrorType string
@@ -33,6 +34,53 @@ def write_error_report_html(
     error_types = list(TaskErrorType)
     task_ids = [str(t.get("id", "")) for t in tasks]
     task_map = {str(t.get("id", "")): t.get("title", "") for t in tasks}
+
+    committer_task_counts: Dict[str, int] = {}
+    committer_names: Dict[str, str] = {}
+    for task in tasks:
+        committer = task.get("committer")
+        if not isinstance(committer, dict):
+            continue
+
+        ist_id = str(committer.get("ist_id", "")).strip()
+        if not ist_id:
+            continue
+
+        committer_task_counts[ist_id] = committer_task_counts.get(ist_id, 0) + 1
+        name = str(committer.get("name", "")).strip()
+        if name and not committer_names.get(ist_id):
+            committer_names[ist_id] = name
+
+    sorted_committers = sorted(
+        committer_task_counts.items(),
+        key=lambda item: (-item[1], committer_names.get(item[0], "").lower(), item[0].lower()),
+    )
+
+    if sorted_committers:
+        student_cards = []
+        for ist_id, task_count in sorted_committers:
+            name = committer_names.get(ist_id, "")
+            student_label = f"{name} ({ist_id})" if name else ist_id
+            student_cards.append(
+                f"""                    <div class=\"student-task-card\">
+                        <div class=\"student-task-name\">{escape(student_label)}</div>
+                        <div class=\"student-task-count\">{task_count} task(s)</div>
+                    </div>
+"""
+            )
+
+        realized_tasks_html = """            <div class="student-task-summary">
+                <h2>Realized Tasks Per Student</h2>
+                <div class="student-task-grid">
+""" + "".join(student_cards) + """                </div>
+            </div>
+"""
+    else:
+        realized_tasks_html = """            <div class="student-task-summary">
+                <h2>Realized Tasks Per Student</h2>
+                <div class="student-task-empty">No tasks with committer information.</div>
+            </div>
+"""
 
     affected_tasks = 0
     for t in task_errors.values():
@@ -101,6 +149,47 @@ def write_error_report_html(
         .stat-label {{
             font-size: 0.9em;
             opacity: 0.9;
+        }}
+
+        .student-task-summary {{
+            margin-top: 24px;
+        }}
+
+        .student-task-summary h2 {{
+            font-size: 1.05em;
+            margin-bottom: 10px;
+        }}
+
+        .student-task-grid {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }}
+
+        .student-task-card {{
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 6px;
+            padding: 10px 14px;
+            min-width: 210px;
+        }}
+
+        .student-task-name {{
+            font-weight: 600;
+            line-height: 1.2;
+        }}
+
+        .student-task-count {{
+            font-size: 1.1em;
+            margin-top: 4px;
+            font-weight: 700;
+        }}
+
+        .student-task-empty {{
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 10px 14px;
+            width: fit-content;
         }}
 
         section {{
@@ -239,6 +328,7 @@ def write_error_report_html(
                     <div class="stat-label">Global Errors</div>
                 </div>
             </div>
+{realized_tasks_html}
         </header>
 """
 

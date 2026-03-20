@@ -62,6 +62,47 @@
             opacity: 0.9;
         }
 
+        .student-task-summary {
+            margin-top: 24px;
+        }
+
+        .student-task-summary h2 {
+            font-size: 1.05em;
+            margin-bottom: 10px;
+        }
+
+        .student-task-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .student-task-card {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 6px;
+            padding: 10px 14px;
+            min-width: 210px;
+        }
+
+        .student-task-name {
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .student-task-count {
+            font-size: 1.1em;
+            margin-top: 4px;
+            font-weight: 700;
+        }
+
+        .student-task-empty {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 10px 14px;
+            width: fit-content;
+        }
+
         section {
             background: white;
             margin-bottom: 30px;
@@ -186,7 +227,7 @@
             <h1>📋 Validation Error Report</h1>
             <div class="stats">
                 <div class="stat">
-                    <div class="stat-number">11</div>
+                    <div class="stat-number">12</div>
                     <div class="stat-label">Total Errors</div>
                 </div>
                 <div class="stat">
@@ -198,6 +239,20 @@
                     <div class="stat-label">Global Errors</div>
                 </div>
             </div>
+            <div class="student-task-summary">
+                <h2>Realized Tasks Per Student</h2>
+                <div class="student-task-grid">
+                    <div class="student-task-card">
+                        <div class="student-task-name">Tomás Tempera (ist1110350)</div>
+                        <div class="student-task-count">3 task(s)</div>
+                    </div>
+                    <div class="student-task-card">
+                        <div class="student-task-name">Diogo Passinhas (ist1109554)</div>
+                        <div class="student-task-count">2 task(s)</div>
+                    </div>
+                </div>
+            </div>
+
         </header>
         <section>
             <h2>Global Errors</h2>
@@ -226,7 +281,7 @@
                             <td class='x-mark'>✗</td>
                             <td class='x-mark'>✗</td>
                             <td class='x-mark'>✗</td>
-                            <td><strong>50%</strong></td>
+                            <td><strong>40%</strong></td>
                         </tr>
                         <tr>
                             <td><strong>T1.2</strong></td>
@@ -250,7 +305,7 @@
                             <td class='x-mark'>✗</td>
                             <td class='checkmark'>✓</td>
                             <td class='x-mark'>✗</td>
-                            <td><strong>50%</strong></td>
+                            <td><strong>60%</strong></td>
                         </tr>
                         <tr>
                             <td><strong>T1.4</strong></td>
@@ -262,7 +317,7 @@
                             <td class='x-mark'>✗</td>
                             <td class='checkmark'>✓</td>
                             <td class='x-mark'>✗</td>
-                            <td><strong>50%</strong></td>
+                            <td><strong>60%</strong></td>
                         </tr>
                         <tr>
                             <td><strong>T1.5</strong></td>
@@ -271,10 +326,10 @@
                             <td class='checkmark'>✓</td>
                             <td class='checkmark'>✓</td>
                             <td class='checkmark'>✓</td>
-                            <td class='checkmark'>✓</td>
+                            <td class='x-mark'>✗</td>
                             <td class='checkmark'>✓</td>
                             <td class='x-mark'>✗</td>
-                            <td><strong>80%</strong></td>
+                            <td><strong>60%</strong></td>
                         </tr>
                     </tbody>
                 </table>
@@ -334,11 +389,15 @@
                 </div>
                 <div class="task-section">
                     <h3>Task T1.5: Implement and test approved activity invariant in Shift class</h3>
-                    <p><strong>2 error(s)</strong></p>
+                    <p><strong>3 error(s)</strong></p>
                     <div class="error-type">
                         <strong>• Code coverage</strong>
                         <div class="error-message">TT1.5: screenshotfile not found: images/shiftIncompleteActivityInvariant.png</div>
                         <div class="error-message">TT1.5: screenshotfile not found: images/shiftActivityMustBeApproved.png</div>
+                    </div>
+                    <div class="error-type">
+                        <strong>• Commit format and issue link</strong>
+                        <div class="error-message">Task T1.5, MR !7: no commit message contains &#x27;Closes #8&#x27;.</div>
                     </div>
                 </div>
             </div>

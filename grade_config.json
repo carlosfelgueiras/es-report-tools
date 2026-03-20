@@ -1,8 +1,8 @@
 {
   "Committer exists and is a member": 10,
-  "Merge request": 20,
+  "Merge request": 10,
   "Review": 20,
-  "Commit format and issue link": 30,
-  "MR changed files": 0,
+  "Commit format and issue link": 20,
+  "MR changed files": 20,
   "Code coverage": 20
 }

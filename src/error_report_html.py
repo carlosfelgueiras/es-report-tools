@@ -22,7 +22,7 @@ def write_error_report_html(
         errors: Dict containing:
             - global_errors: List[GlobalError]
             - task_errors: Dict[str, List[TaskError]]
-        tasks: List of task dicts with 'id', 'title', and optional 'mr_count' keys
+        tasks: List of task dicts with 'id', 'title', and optional 'mrs' keys
         output_file: Path to output HTML file
         total_errors: Total number of errors found
         grade_config: Optional dictionary with weights per TaskErrorType string
@@ -166,11 +166,6 @@ def write_error_report_html(
             color: #667eea;
         }}
 
-        .mr-count {{
-            text-align: center;
-            font-weight: 600;
-        }}
-
         .error-list {{
             padding: 20px;
         }}
@@ -273,7 +268,7 @@ def write_error_report_html(
                         <tr>
                             <th>Task ID</th>
                             <th>Task Title</th>
-                            <th>MRs Done</th>
+                            <th>MR Count</th>
                             {"".join(f"<th>{escape(et.value)}</th>" for et in error_types)}"""
 
     if grade_config:
@@ -287,20 +282,12 @@ def write_error_report_html(
     for task in tasks:
         task_id = str(task.get("id", ""))
         task_title = str(task.get("title", ""))
-        raw_mr_count = task.get("mr_count")
-        if raw_mr_count is None:
-            raw_mrs = task.get("mrs", [])
-            task_mr_count = len(raw_mrs) if isinstance(raw_mrs, list) else 0
-        else:
-            try:
-                task_mr_count = int(raw_mr_count)
-            except (TypeError, ValueError):
-                task_mr_count = 0
+        task_mr_count = len(task.get("mrs", []))
 
         html_content += "                        <tr>\n"
         html_content += f"                            <td><strong>{escape(task_id)}</strong></td>\n"
         html_content += f"                            <td class='task-name'>{escape(task_title)}</td>\n"
-        html_content += f"                            <td class='mr-count'>{task_mr_count}</td>\n"
+        html_content += f"                            <td>{task_mr_count}</td>\n"
 
         for error_type in error_types:
             has_error = False

@@ -2,13 +2,55 @@ import argparse
 import re
 import json
 from typing import Literal, TypedDict, cast
-import os
-import csv
-from pathlib import Path
-from validation import validate_report
-from error_report_html import write_error_report_html
-from error_report import TaskErrorType
-from report_types import Report, Issue, MR, CoverageScreenshot, Member, Committer, Group, Task
+
+
+class Issue(TypedDict):
+    id: int
+    url: str
+
+
+class MR(TypedDict):
+    id: int
+    url: str
+
+
+class CoverageScreenshot(TypedDict):
+    path: str
+
+
+class Member(TypedDict):
+    name: str
+    ist_id: str
+    gitlab: str
+    issues: list[Issue]
+
+
+class Committer(TypedDict):
+    name: str
+    ist_id: str
+    gitlab: str
+
+
+class Group(TypedDict):
+    campus: Literal["AL", "TP"]
+    number: int
+    members: list[Member]
+
+
+class Task(TypedDict):
+    id: str
+    title: str
+    committer: Committer | None
+    commits: list[Issue]
+    reviews: list[MR]
+    coverage: list[CoverageScreenshot]
+
+
+class Report(TypedDict):
+    group: Group
+    total_coverage: CoverageScreenshot
+    tasks: list[Task]
+
 
 Section = Literal["members", "coverage", "tasks"] | None
 TaskSection = Literal["committer", "commits", "reviews", "coverage"] | None
@@ -26,21 +68,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--to-json",
         action="store_true",
         help="Print parsed report as JSON to stdout.",
-    )
-    cli.add_argument(
-        "--html-report",
-        default=None,
-        help="Path for HTML validation report output (default: <input_stem>_validation_report.html).",
-    )
-    cli.add_argument(
-        "--grade-config",
-        default=None,
-        help="Path to JSON file containing grade weights for task categories.",
-    )
-    cli.add_argument(
-        "--csv-report",
-        default=None,
-        help="Path for CSV grade report output.",
     )
     return cli
 
@@ -105,12 +132,15 @@ def parse_issue_line(line: str) -> list[Issue]:
     return issues
 
 
-def parse_task_header(line: str) -> tuple[str, str] | None:
-    # ### T1.X - Title
-    match = re.match(r"^###\s*(T[^-\s]+)\s*-\s*(.+)$", line.strip())
+def parse_task_header(line: str) -> tuple[str, str]:
+    # ### T1.1 - Title
+    match = re.match(r"^###\s+(T\d+\.\d+)\s*-\s*(\S.*\S|\S)$", line.strip())
     if not match:
-        return None
-    return match.group(1).strip(), match.group(2).strip()
+        raise ValueError(
+            "Invalid task header syntax. Expected format: "
+            "'### T<number>.<number> - <title>'."
+        )
+    return match.group(1), match.group(2)
 
 
 def parse_coverage_links(line: str) -> list[CoverageScreenshot]:
@@ -180,18 +210,16 @@ def parse_markdown_report(markdown: str) -> Report:
             current_section = "tasks"
 
         elif stripped.startswith("###"):
-            parsed_task = parse_task_header(stripped)
-            if parsed_task is not None:
-                task_id, title = parsed_task
-                current_task = {
-                    "id": task_id,
-                    "title": title,
-                    "committer": None,
-                    "issues": [],
-                    "mrs": [],
-                    "coverage": []
-                }
-                tasks.append(current_task)
+            task_id, title = parse_task_header(stripped)
+            current_task = {
+                "id": task_id,
+                "title": title,
+                "committer": None,
+                "commits": [],
+                "reviews": [],
+                "coverage": []
+            }
+            tasks.append(current_task)
 
         elif current_section == "members":
             if stripped.startswith("- "):
@@ -231,10 +259,10 @@ def parse_markdown_report(markdown: str) -> Report:
                 elif current_task_section in ["commits", "reviews", "coverage"]:
                     if current_task_section == "commits":
                         commit_links = parse_commit_links(stripped)
-                        current_task["issues"].extend(commit_links)
+                        current_task["commits"].extend(commit_links)
                     elif current_task_section == "reviews":
                         review_links = parse_review_links(stripped)
-                        current_task["mrs"].extend(review_links)
+                        current_task["reviews"].extend(review_links)
                     elif current_task_section == "coverage":
                         coverage_links = parse_coverage_links(stripped)
                         current_task["coverage"].extend(coverage_links)
@@ -265,71 +293,6 @@ def main() -> None:
         content = f.read()
 
     result = parse_markdown_report(content)
-
-    input_path = Path(args.input_path)
-    html_report_path = (
-        Path(args.html_report)
-        if args.html_report
-        else input_path.with_name(f"{input_path.stem}_validation_report.html")
-    )
-
-    # Run validation
-        
-    errors = validate_report(
-        report=result,
-        markdown_path=args.input_path,
-        gitlab_token=os.getenv("GITLAB_TOKEN"),
-    )
-
-    total_task_errors = 0
-    for e in errors["task_errors"].values():
-        total_task_errors += len(e)
-
-    total_errors = len(errors["global_errors"]) + total_task_errors
-
-    grade_config = None
-    if args.grade_config:
-        try:
-            with open(args.grade_config, "r", encoding="utf-8") as f:
-                grade_config = json.load(f)
-        except Exception as e:
-            print(f"Error loading grade config: {e}")
-            exit(1)
-
-    tasks_for_report = result["tasks"]
-    write_error_report_html(errors, tasks_for_report, str(html_report_path), total_errors, grade_config=grade_config)
-
-    if args.csv_report and grade_config:
-        error_types = list(TaskErrorType)
-        task_errors = errors["task_errors"]
-        grades = {}
-        for task in result["tasks"]:
-            task_id = str(task["id"])
-            task_grade = 0
-            for error_type in error_types:
-                has_error = False
-                if task_id in task_errors:
-                    errors_for_type = [te for te in task_errors[task_id] if te.error_type == error_type]
-                    if errors_for_type:
-                        has_error = True
-                if not has_error:
-                    task_grade += grade_config.get(error_type.value, 0)
-            
-            grades[task_id] = task_grade / 100.0
-
-        with open(args.csv_report, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, delimiter=";")
-            # Create a header row with the task IDs
-            writer.writerow([t['id'] for t in result["tasks"]])
-            # Output the single row of decimal grades, formatted with a comma for Excel
-            writer.writerow([str(grades[str(t['id'])]).replace(".", ",") for t in result["tasks"]])
-
-    if errors:
-        print(f"Validation failed with {total_errors} error(s).")
-        print(f"HTML report written to: {html_report_path}")
-        exit(1)
-
-    print(f"Validation passed. HTML report written to: {html_report_path}")
 
     if args.to_json:
         print(json.dumps(result, indent=2))

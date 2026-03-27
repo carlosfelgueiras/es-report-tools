@@ -295,6 +295,11 @@ def validate_report(
                 f"Task {task['id']}: Missing committer."
             ))
             continue
+        
+        if not task.get("COMMITER"):
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
+                f"Task {task['id']}: no commiter assigned to task."
+            ))
 
         comm = task["committer"]
 
@@ -367,14 +372,24 @@ def validate_report(
                     f"Task {task['id']}, MR !{mr['id']}: MR author must be the committer "
                     f"(expected {committer_ist_id}, got {author_username})."
                 ))
+            
+            # Assignee must be the same as commiter
+            assignees = _extract_usernames(mr_data.get("assignees"))
+
+            if not assignees:
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
+                    f"Task {task['id']}, MR !{mr['id']}: cannot determine assignee (no assignees)."
+                ))
+            elif committer_ist_id.lower() not in {a.lower() for a in assignees}:
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
+                    f"Task {task['id']}, MR !{mr['id']}: committer ({committer_ist_id}) must be an assignee."
+                ))
 
             reviewers = _extract_usernames(mr_data.get("reviewers"))
-            if not reviewers:
-                reviewers = _extract_usernames(mr_data.get("assignees"))
 
             if not reviewers:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
-                    f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers/assignees)."
+                    f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers)."
                 ))
             elif committer_ist_id.lower() in {r.lower() for r in reviewers}:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,

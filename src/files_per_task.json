@@ -121,7 +121,8 @@
         "HEPermissionEvaluator.java",
         "ParticipationDto.java",
         "ShiftRepository.java",
-        "ErrorMessage.java"
+        "ErrorMessage.java",
+        "EnrollmentService.java"
     ],
     "T1.20": [
         "ErrorMessage.java",
@@ -133,7 +134,7 @@
         "ParticipationService.java",
         "Participation.java",
         "Volunteer.java",
-        "HEPermissionEvaluator.java", 
+        "HEPermissionEvaluator.java",
         "ParticipationDto.java",
         "ParticipationController.java"
     ]

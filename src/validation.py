@@ -102,7 +102,7 @@ def _get_mr_java_diffs(base: str, token: str, project_path: str, iid: int) -> li
     return java_files
 
 
-def _get_all_master_commits(base: str, token: str, project_path: str) -> list[dict] | None:
+def _get_all_sprint_1_commits(base: str, token: str, project_path: str) -> list[dict] | None:
     proj = quote(project_path, safe="")
     per_page = 100
     page = 1
@@ -110,7 +110,7 @@ def _get_all_master_commits(base: str, token: str, project_path: str) -> list[di
 
     while True:
         params = {
-            "ref_name": "master",
+            "ref_name": "sprint-1",
             "per_page": per_page,
             "page": page,
             "since": "2026-02-18T17:59:02Z",
@@ -212,8 +212,16 @@ def validate_report(
     expected_suffix = f"{report['group']['campus'].lower()}-{report['group']['number']:02d}"
     project_path = f"es/es26-{expected_suffix}"
 
-    member_ist_ids = {m["ist_id"] for m in report["group"]["members"]}
+    member_ist_ids = {ist_id_fix(m["ist_id"]) for m in report["group"]["members"]}
     expected_files_per_task = _load_expected_files_per_task()
+
+    def ist_id_fix(ist_id: str) -> str:
+        ist_id = ist_id.strip()
+        
+        if ist_id.isdigit():
+            return f"ist1{ist_id}"
+        
+        return ist_id
 
     # ----------------------------
     # 4) Screenshots
@@ -250,29 +258,29 @@ def validate_report(
     # 1) Members: profile + assigned issues
     # ----------------------------
     for member in report["group"]["members"]:
-        expected_profile_url = f"{gitlab_base}/{member['ist_id']}"
+        expected_profile_url = f"{gitlab_base}/{ist_id_fix(member['ist_id'])}"
 
         # One strict check (case-insensitive)
         if member["gitlab"].lower() != expected_profile_url.lower():
             errors["global_errors"].append(GlobalError(GlobalErrorType.MEMBER,
-                f"Member {member['ist_id']}: profile URL must be '{expected_profile_url}', got '{member['gitlab']}'"
+                f"Member {ist_id_fix(member['ist_id'])}: profile URL must be '{expected_profile_url}', got '{member['gitlab']}'"
             ))
         else:
-            if not _user_exists(gitlab_base, gitlab_token, member["ist_id"]):
+            if not _user_exists(gitlab_base, gitlab_token, ist_id_fix(member['ist_id'])):
                 errors["global_errors"].append(GlobalError(GlobalErrorType.MEMBER,
-                    f"Member {member['ist_id']}: GitLab user does not exist (or not visible): {member['gitlab']}"
+                    f"Member {ist_id_fix(member['ist_id'])}: GitLab user does not exist (or not visible): {member['gitlab']}"
                 ))
 
         for issue in member["issues"]:
             expected_issue_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/issues/{issue['id']}"
             if issue["url"].lower() != expected_issue_url.lower():
                 errors["global_errors"].append(GlobalError(GlobalErrorType.ISSUE,
-                    f"Member {member['ist_id']}: issue URL must be '{expected_issue_url}', got '{issue['url']}'"
+                    f"Member {ist_id_fix(member['ist_id'])}: issue URL must be '{expected_issue_url}', got '{issue['url']}'"
                 ))
             else:
                 if not _issue_exists(gitlab_base, gitlab_token, project_path, issue["id"]):
                     errors["global_errors"].append(GlobalError(GlobalErrorType.ISSUE,
-                        f"Member {member['ist_id']}: issue does not exist (or no access): {issue['url']}"))
+                        f"Member {ist_id_fix(member['ist_id'])}: issue does not exist (or no access): {issue['url']}"))
 
     # ----------------------------
     # 2) + 1) + 3) Tasks
@@ -287,19 +295,19 @@ def validate_report(
         comm = task["committer"]
 
         # 2) committer is member
-        if comm["ist_id"] not in member_ist_ids:
+        if ist_id_fix(comm["ist_id"]) not in member_ist_ids:
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                f"Task {task['id']}: committer {comm['ist_id']} is not a group member."
+                f"Task {task['id']}: committer {ist_id_fix(comm['ist_id'])} is not a group member."
             ))
 
         # 1) committer profile strict + exists
-        expected_comm_profile_url = f"{gitlab_base}/{comm['ist_id']}"
+        expected_comm_profile_url = f"{gitlab_base}/{ist_id_fix(comm['ist_id'])}"
         if comm["gitlab"].lower() != expected_comm_profile_url.lower():
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
                 f"Task {task['id']}: committer profile URL must be '{expected_comm_profile_url}', got '{comm['gitlab']}'"
             ))
         else:
-            if not _user_exists(gitlab_base, gitlab_token, comm["ist_id"]):
+            if not _user_exists(gitlab_base, gitlab_token, ist_id_fix(comm['ist_id'])):
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
                     f"Task {task['id']}: committer user does not exist (or not visible): {comm['gitlab']}"
                 ))
@@ -338,11 +346,11 @@ def validate_report(
             # 3) MR author must be committer (case-insensitive)
             author = mr_data.get("author")
             author_username = author.get("username") if isinstance(author, dict) else None
-            
-            if not isinstance(author_username, str) or author_username.lower() != comm["ist_id"].lower():
+            committer_ist_id = ist_id_fix(comm["ist_id"])
+            if not isinstance(author_username, str) or author_username.lower() != committer_ist_id.lower():
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
                     f"Task {task['id']}, MR !{mr['id']}: MR author must be the committer "
-                    f"(expected {comm['ist_id']}, got {author_username})."
+                    f"(expected {committer_ist_id}, got {author_username})."
                 ))
 
             reviewers = _extract_usernames(mr_data.get("reviewers"))
@@ -353,9 +361,9 @@ def validate_report(
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
                     f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers/assignees)."
                 ))
-            elif comm["ist_id"].lower() in {r.lower() for r in reviewers}:
+            elif committer_ist_id.lower() in {r.lower() for r in reviewers}:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
-                    f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({comm['ist_id']})."
+                    f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({committer_ist_id})."
                 ))
 
             # Validate all commits in the MR
@@ -396,12 +404,12 @@ def validate_report(
                     ))
 
                 if task_issue_id is not None and not has_closes_reference:
-                    master_commits = _get_all_master_commits(gitlab_base, gitlab_token, project_path)
-                    master_closes = master_commits is not None and any(
+                    sprint_1_commits = _get_all_sprint_1_commits(gitlab_base, gitlab_token, project_path)
+                    sprint_1_closes = sprint_1_commits is not None and any(
                         _commit_closes_issue(str(c.get("message", "") or ""), task_issue_id)
-                        for c in master_commits
+                        for c in sprint_1_commits
                     )
-                    if not master_closes:
+                    if not sprint_1_closes:
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
                             f"'Closes #{task_issue_id}'."

@@ -32,7 +32,9 @@
     ],
     "T1.8": [
         "ShiftService.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ErrorMessage.java",
+        "ShiftDto.java"
     ],
     "T1.9": [
         "ShiftController.java",
@@ -78,11 +80,13 @@
         "ParticipationController.java",
         "ParticipationService.java",
         "Shift.java",
-        "ErrorMessage.java"
+        "ErrorMessage.java",
+        "ShiftRepository.java"
     ],
     "T1.17": [
         "ErrorMessage.java",
-        "Participation.java"
+        "Participation.java",
+        "Shift.java"
     ],
     "T1.18": [
         "Activity.java",
@@ -98,7 +102,11 @@
         "Enrollment.java",
         "Participation.java",
         "ParticipationController.java",
-        "ParticipationService.java"
+        "ParticipationService.java",
+        "EnrollmentDto.java",
+        "HEPermissionEvaluator.java",
+        "ParticipationDto.java",
+        "ShiftRepository.java"
     ],
     "T1.20": [
         "ErrorMessage.java",
@@ -108,6 +116,8 @@
         "ParticipationRepository.java",
         "ParticipationService.java",
         "Participation.java",
-        "Volunteer.java"
+        "Volunteer.java",
+        "HEPermissionEvaluator.java", 
+        "ParticipationDto.java"
     ]
 }

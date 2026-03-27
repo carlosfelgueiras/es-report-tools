@@ -377,11 +377,11 @@ def validate_report(
             assignees = _extract_usernames(mr_data.get("assignees"))
 
             if not assignees:
-                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
                     f"Task {task['id']}, MR !{mr['id']}: cannot determine assignee (no assignees)."
                 ))
             elif committer_ist_id.lower() not in {a.lower() for a in assignees}:
-                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
                     f"Task {task['id']}, MR !{mr['id']}: committer ({committer_ist_id}) must be an assignee."
                 ))
 

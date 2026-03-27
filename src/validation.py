@@ -251,6 +251,10 @@ def validate_report(
     check_image(report["total_coverage"]["path"], None)
     for task in report["tasks"]:
         errors["task_errors"][task['id']] = []
+        if not task.get("coverage"):
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.CODE_COVERAGE,
+                f"Task {task['id']}: no code coverage assigned to task."
+            ))
         for cov in task["coverage"]:
             check_image(cov["path"], task['id'])
 
@@ -313,6 +317,12 @@ def validate_report(
                 ))
 
         # task issues
+        if not task.get("issues"):
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
+                f"Task {task['id']}: no issue assigned to task."
+            ))
+
+
         task_issue_id = task["issues"][0]["id"] if task["issues"] else None
         for issue in task["issues"]:
             expected_issue_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/issues/{issue['id']}"
@@ -327,6 +337,11 @@ def validate_report(
                     ))
 
         # MRs
+        if not task.get("mrs"):
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
+                f"Task {task['id']}: no merge request assigned to task."
+            ))
+
         first_mr = min(task["mrs"], key=lambda mr: mr["id"]) if task["mrs"] else None
         for mr in task["mrs"]:
             expected_mr_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/merge_requests/{mr['id']}"

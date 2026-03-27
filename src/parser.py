@@ -133,13 +133,13 @@ def parse_review_links(line: str) -> list[MR]:
 
 def parse_group_from_title(line: str) -> Group:
     # # ES2026 P1 Submission, Group AL-12
-    match = re.search(r"Group\s+(AL|TP)-(\d+)\b", line.strip())
+    match = re.search(r"Group\s+(AL|TP)-(\d+)\b", line.strip(), re.IGNORECASE)
     if not match:
         raise ValueError(
             "Invalid report title: expected 'Group AL-<group-number>' or "
             "'Group TP-<group-number>'."
         )
-    campus = match.group(1)
+    campus = match.group(1).upper()
     number = int(match.group(2))
     if number <= 0:
         raise ValueError("Invalid group number: must be a positive integer.")

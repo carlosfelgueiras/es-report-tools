@@ -407,7 +407,7 @@ def validate_report(
                     
                     # Validate commit author email domain
                     commit_author_email = str(commit.get("author_email", "") or "")
-                    if not commit_author_email.lower().endswith("@tecnico.ulisboa.pt"):
+                    if not commit_author_email.lower().endswith("@tecnico.ulisboa.pt") or not commit_author_email.lower().endswith("@rnl.tecnico.ulisboa.pt"):
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}, commit {commit_sha}: "
                             f"commit author email must be from Técnico, got {commit_author_email}."

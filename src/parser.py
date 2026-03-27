@@ -216,6 +216,9 @@ def parse_markdown_report(markdown: str) -> Report:
             elif stripped.startswith("- Commit"):
                 current_task_section = "commits"
 
+            elif stripped.startswith("- Issue"):
+                current_task_section = "commits"
+
             elif stripped.startswith("- Review"):
                 current_task_section = "reviews"
 

@@ -4,7 +4,9 @@
         "ActivityDto.java",
         "Shift.java",
         "ShiftDto.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ShiftController.java",
+        "ShiftService.java"
     ],
     "T1.2": [
         "ErrorMessage.java",
@@ -28,13 +30,15 @@
     ],
     "T1.7": [
         "ErrorMessage.java",
-        "Shift.java"
+        "Shift.java",
+        "Activity.java"
     ],
     "T1.8": [
         "ShiftService.java",
         "ShiftRepository.java",
         "ErrorMessage.java",
-        "ShiftDto.java"
+        "ShiftDto.java",
+        "Shift.java"
     ],
     "T1.9": [
         "ShiftController.java",
@@ -43,11 +47,14 @@
     ],
     "T1.10": [
         "ShiftService.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ShiftDto.java"
     ],
     "T1.11": [
         "ShiftController.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ErrorMessage.java",
+        "Shift.java"
     ],
     "T1.12": [
         "EnrollmentController.java",
@@ -55,7 +62,10 @@
         "Enrollment.java",
         "EnrollmentDto.java",
         "Shift.java",
-        "ErrorMessage.java"
+        "ErrorMessage.java",
+        "Activity.java",
+        "ShiftDto.java",
+        "ShiftRepository.java"
     ],
     "T1.13": [
         "Enrollment.java",
@@ -71,7 +81,8 @@
         "EnrollmentController.java",
         "EnrollmentRepository.java",
         "EnrollmentService.java",
-        "Enrollment.java"
+        "Enrollment.java",
+        "EnrollmentDto.java"
     ],
     "T1.16": [
         "HEPermissionEvaluator.java",
@@ -81,7 +92,8 @@
         "ParticipationService.java",
         "Shift.java",
         "ErrorMessage.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ParticipationRepository.java"
     ],
     "T1.17": [
         "ErrorMessage.java",
@@ -96,7 +108,9 @@
         "ParticipationService.java",
         "ParticipationController.java",
         "Participation.java",
-        "HEPermissionEvaluator.java"
+        "HEPermissionEvaluator.java",
+        "ParticipationDto.java",
+        "ErrorMessage.java"
     ],
     "T1.19": [
         "Enrollment.java",
@@ -106,11 +120,13 @@
         "EnrollmentDto.java",
         "HEPermissionEvaluator.java",
         "ParticipationDto.java",
-        "ShiftRepository.java"
+        "ShiftRepository.java",
+        "ErrorMessage.java"
     ],
     "T1.20": [
         "ErrorMessage.java",
-        "Participation.java"
+        "Participation.java",
+        "Enrollment.java"
     ],
     "T1.21": [
         "ParticipationRepository.java",
@@ -118,6 +134,7 @@
         "Participation.java",
         "Volunteer.java",
         "HEPermissionEvaluator.java", 
-        "ParticipationDto.java"
+        "ParticipationDto.java",
+        "ParticipationController.java"
     ]
 }

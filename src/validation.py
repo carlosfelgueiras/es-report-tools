@@ -180,6 +180,14 @@ def _load_expected_files_per_task() -> dict[str, set[str]]:
     return expected_files
 
 
+def ist_id_fix(ist_id: str) -> str:
+        ist_id = ist_id.strip()
+        
+        if ist_id.isdigit():
+            return f"ist1{ist_id}"
+        
+        return ist_id
+
 # ----------------------------
 # Main validation
 # ----------------------------
@@ -214,14 +222,6 @@ def validate_report(
 
     member_ist_ids = {ist_id_fix(m["ist_id"]) for m in report["group"]["members"]}
     expected_files_per_task = _load_expected_files_per_task()
-
-    def ist_id_fix(ist_id: str) -> str:
-        ist_id = ist_id.strip()
-        
-        if ist_id.isdigit():
-            return f"ist1{ist_id}"
-        
-        return ist_id
 
     # ----------------------------
     # 4) Screenshots

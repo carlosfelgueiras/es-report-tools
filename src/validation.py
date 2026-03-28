@@ -290,6 +290,12 @@ def validate_report(
     # 2) + 1) + 3) Tasks
     # ----------------------------
     for task in report["tasks"]:
+        if task['id'] == "T1.X":
+            errors["global_errors"].append(GlobalError(GlobalErrorType.TASK,
+                    f"T1.X is not a valid task ID (placeholder value, must be replaced with T1.1, T1.2, etc.)."
+                ))
+            continue
+        
         if task["committer"] is None:
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER, 
                 f"Task {task['id']}: Missing committer."

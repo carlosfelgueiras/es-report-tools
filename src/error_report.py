@@ -10,6 +10,7 @@ class GlobalErrorType(Enum):
     MEMBER = "Member URL"
     ISSUE = "Issue URL"
     CODE_COVERAGE = "Code coverage"
+    TASK = "Task format"
 
 class TaskErrorType(Enum):
     """Categories of validation errors."""

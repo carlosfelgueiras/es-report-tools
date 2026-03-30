@@ -300,32 +300,29 @@ def validate_report(
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER, 
                 f"Task {task['id']}: Missing committer."
             ))
-            continue
-        
-        if not task.get("committer"):
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                f"Task {task['id']}: no commiter assigned to task."
-            ))
-
-        comm = task["committer"]
-
-        # 2) committer is member
-        if ist_id_fix(comm["ist_id"]) not in member_ist_ids:
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                f"Task {task['id']}: committer {ist_id_fix(comm['ist_id'])} is not a group member."
-            ))
-
-        # 1) committer profile strict + exists
-        expected_comm_profile_url = f"{gitlab_base}/{ist_id_fix(comm['ist_id'])}"
-        if comm["gitlab"].lower() != expected_comm_profile_url.lower():
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                f"Task {task['id']}: committer profile URL must be '{expected_comm_profile_url}', got '{comm['gitlab']}'"
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER, 
+                f"Task {task['id']}: Missing committer 2 (To remove all percentage)."
             ))
         else:
-            if not _user_exists(gitlab_base, gitlab_token, ist_id_fix(comm['ist_id'])):
+            comm = task["committer"]
+
+            # 2) committer is member
+            if not comm.get("ist_id") and ist_id_fix(comm["ist_id"]) not in member_ist_ids:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                    f"Task {task['id']}: committer user does not exist (or not visible): {comm['gitlab']}"
+                    f"Task {task['id']}: committer {ist_id_fix(comm['ist_id'])} is not a group member."
                 ))
+
+            # 1) committer profile strict + exists
+            expected_comm_profile_url = f"{gitlab_base}/{ist_id_fix(comm['ist_id'])}"
+            if comm["gitlab"].lower() != expected_comm_profile_url.lower():
+                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
+                    f"Task {task['id']}: committer profile URL must be '{expected_comm_profile_url}', got '{comm['gitlab']}'"
+                ))
+            else:
+                if not _user_exists(gitlab_base, gitlab_token, ist_id_fix(comm['ist_id'])):
+                    errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
+                        f"Task {task['id']}: committer user does not exist (or not visible): {comm['gitlab']}"
+                    ))
 
         # task issues
         if not task.get("issues"):
@@ -351,6 +348,9 @@ def validate_report(
         if not task.get("mrs"):
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
                 f"Task {task['id']}: no merge request assigned to task."
+            ))
+            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
+                f"Task {task['id']}: no merge request assigned to task 2 (To remove all percentage)."
             ))
 
         first_mr = min(task["mrs"], key=lambda mr: mr["id"]) if task["mrs"] else None

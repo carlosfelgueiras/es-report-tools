@@ -48,7 +48,7 @@ class Task(TypedDict):
 
 class Report(TypedDict):
     group: Group
-    total_coverage: CoverageScreenshot
+    total_coverage: CoverageScreenshot | None
     tasks: list[Task]
 
 
@@ -241,7 +241,7 @@ def parse_markdown_report(markdown: str) -> Report:
             if stripped.startswith("- Committer"):
                 current_task_section = "committer"
 
-            elif stripped.startswith("- Commit"):
+            elif stripped.startswith("- Commit") or stripped.startswith("- Issue associated with commit"):
                 current_task_section = "commits"
 
             elif stripped.startswith("- Review"):
@@ -271,11 +271,6 @@ def parse_markdown_report(markdown: str) -> Report:
         raise ValueError(
             "Missing report title with group identifier. Expected a line like "
             "'# ... Group AL-<positive int>' or '# ... Group TP-<positive int>'."
-        )
-    if total_coverage is None:
-        raise ValueError(
-            "Missing total coverage screenshot. Expected a markdown link under "
-            "'## Total Coverage'."
         )
 
     return {

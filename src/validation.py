@@ -15,8 +15,6 @@ from error_report import GlobalError, TaskError, GlobalErrorType, TaskErrorType
 GITLAB_BASE = "https://gitlab.rnl.tecnico.ulisboa.pt"
 FILES_PER_TASK_PATH = Path(__file__).with_name("files_per_task.json")
 
-# Strict formats
-IMAGE_RE = re.compile(r"^images/.+\.png$")
 
 
 # ----------------------------
@@ -206,9 +204,6 @@ def validate_report(
          - MR URLs: must equal base/es/es26-cc-nn/-/merge_requests/<id> (case-insensitive), and MR exists.
       2) Committer is a member of the group.
       3) Reviewer != committer, where committer is MR author (opener).
-      4) Screenshot files must exist and be under images/ relative to the markdown folder.
-            5) In each MR, at least one commit message must contain "Closes #<issue_id>" for the task issue, each message must be a convetiona commit and the e-mail must be from Técnico.
-            6) For each task, only the first MR (lowest id) can change the Java files listed in files_per_task.json.
     """
     errors: dict[str, list] = {"global_errors": [], "task_errors": {}}
 
@@ -223,40 +218,8 @@ def validate_report(
     member_ist_ids = {ist_id_fix(m["ist_id"]) for m in report["group"]["members"]}
     expected_files_per_task = _load_expected_files_per_task()
 
-    # ----------------------------
-    # 4) Screenshots
-    # ----------------------------
-    def check_image(path_str: str, task_id: str) -> None:
-        if not IMAGE_RE.match(path_str):
-            if task_id == None:
-                errors["global_errors"].append(GlobalError(GlobalErrorType.CODE_COVERAGE,
-                    f"Total coverage: screenshot path must be under images/ and end in .png: {path_str}"
-                ))
-            else:
-                errors["task_errors"][task_id].append(TaskError(task_id, TaskErrorType.CODE_COVERAGE,
-                    f"{task_id}: screenshot path must be under images/ and end in .png: {path_str}"
-                ))
-            return
-        full = md_dir / path_str
-        if not full.is_file():
-            if task_id == None:
-                errors["global_errors"].append(GlobalError(GlobalErrorType.CODE_COVERAGE,
-                    f"Total coverage: screenshot file not found: {path_str}"
-                ))
-            else:
-                errors["task_errors"][task_id].append(TaskError(task_id, TaskErrorType.CODE_COVERAGE,
-                    f"T{task_id}: screenshotfile not found: {path_str}"
-                ))
-
-    check_image(report["total_coverage"]["path"], None)
     for task in report["tasks"]:
         errors["task_errors"][task['id']] = []
-        if not task.get("coverage"):
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.CODE_COVERAGE,
-                f"Task {task['id']}: no code coverage assigned to task."
-            ))
-        for cov in task["coverage"]:
-            check_image(cov["path"], task['id'])
 
     # ----------------------------
     # 1) Members: profile + assigned issues

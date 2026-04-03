@@ -4,23 +4,19 @@
     "max_errors": 2
   },
   "Merge request": {
-    "percentage": 10,
+    "percentage": 15,
     "max_errors": 2
   },
   "Review": {
-    "percentage": 20,
+    "percentage": 25,
     "max_errors": 1
   },
   "Commit format and issue link": {
-    "percentage": 20,
+    "percentage": 25,
     "max_errors": 4
   },
   "MR changed files": {
-    "percentage": 20,
+    "percentage": 25,
     "max_errors": 2
-  },
-  "Code coverage": {
-    "percentage": 20,
-    "max_errors": 1
   }
 }

@@ -9,7 +9,6 @@ class GlobalErrorType(Enum):
     """Categories of validation errors."""
     MEMBER = "Member URL"
     ISSUE = "Issue URL"
-    CODE_COVERAGE = "Code coverage"
     TASK = "Task format"
 
 class TaskErrorType(Enum):
@@ -19,7 +18,6 @@ class TaskErrorType(Enum):
     REVIEW = "Review"
     COMMIT = "Commit format and issue link"
     MR_FILES = "MR changed files"
-    CODE_COVERAGE = "Code coverage"
 
 @dataclass
 class GlobalError:

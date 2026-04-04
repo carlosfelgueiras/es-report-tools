@@ -100,7 +100,7 @@ def _get_mr_java_diffs(base: str, token: str, project_path: str, iid: int) -> li
     return java_files
 
 
-def _get_all_sprint_1_commits(base: str, token: str, project_path: str) -> list[dict] | None:
+def _get_all_sprint_2_commits(base: str, token: str, project_path: str) -> list[dict] | None:
     proj = quote(project_path, safe="")
     per_page = 100
     page = 1
@@ -108,7 +108,7 @@ def _get_all_sprint_1_commits(base: str, token: str, project_path: str) -> list[
 
     while True:
         params = {
-            "ref_name": "sprint-1",
+            "ref_name": "sprint-2",
             "per_page": per_page,
             "page": page,
             "since": "2026-02-18T17:59:02Z",
@@ -403,12 +403,12 @@ def validate_report(
                     ))
 
                 if task_issue_id is not None and not has_closes_reference:
-                    sprint_1_commits = _get_all_sprint_1_commits(gitlab_base, gitlab_token, project_path)
-                    sprint_1_closes = sprint_1_commits is not None and any(
+                    sprint_2_commits = _get_all_sprint_2_commits(gitlab_base, gitlab_token, project_path)
+                    sprint_2_closes = sprint_2_commits is not None and any(
                         _commit_closes_issue(str(c.get("message", "") or ""), task_issue_id)
-                        for c in sprint_1_commits
+                        for c in sprint_2_commits
                     )
-                    if not sprint_1_closes:
+                    if not sprint_2_closes:
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
                             f"'Closes #{task_issue_id}'."

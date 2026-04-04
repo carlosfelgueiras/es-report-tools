@@ -178,6 +178,22 @@ def _load_expected_files_per_task() -> dict[str, set[str]]:
     return expected_files
 
 
+def _deduplicate_task_errors(task_errors: list[TaskError]) -> list[TaskError]:
+    """Keep only the first occurrence of each distinct task error key per type."""
+    seen_errors: set[tuple[TaskErrorType, str]] = set()
+    deduped: list[TaskError] = []
+
+    for error in task_errors:
+        dedupe_key = error.error_key or error.message
+        error_identity = (error.error_type, dedupe_key)
+        if error_identity in seen_errors:
+            continue
+        seen_errors.add(error_identity)
+        deduped.append(error)
+
+    return deduped
+
+
 def ist_id_fix(ist_id: str) -> str:
         ist_id = ist_id.strip()
         
@@ -261,10 +277,8 @@ def validate_report(
         
         if task["committer"] is None:
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER, 
-                f"Task {task['id']}: Missing committer."
-            ))
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER, 
-                f"Task {task['id']}: Missing committer 2 (To remove all percentage)."
+                f"Task {task['id']}: Missing committer.",
+                "missing_committer"
             ))
         else:
             comm = task["committer"]
@@ -272,25 +286,29 @@ def validate_report(
             # 2) committer is member
             if not comm.get("ist_id") and ist_id_fix(comm["ist_id"]) not in member_ist_ids:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                    f"Task {task['id']}: committer {ist_id_fix(comm['ist_id'])} is not a group member."
+                    f"Task {task['id']}: committer {ist_id_fix(comm['ist_id'])} is not a group member.",
+                    "committer_not_group_member"
                 ))
 
             # 1) committer profile strict + exists
             expected_comm_profile_url = f"{gitlab_base}/{ist_id_fix(comm['ist_id'])}"
             if comm["gitlab"].lower() != expected_comm_profile_url.lower():
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                    f"Task {task['id']}: committer profile URL must be '{expected_comm_profile_url}', got '{comm['gitlab']}'"
+                    f"Task {task['id']}: committer profile URL must be '{expected_comm_profile_url}', got '{comm['gitlab']}'",
+                    "committer_profile_url_invalid"
                 ))
             else:
                 if not _user_exists(gitlab_base, gitlab_token, ist_id_fix(comm['ist_id'])):
                     errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMITTER,
-                        f"Task {task['id']}: committer user does not exist (or not visible): {comm['gitlab']}"
+                        f"Task {task['id']}: committer user does not exist (or not visible): {comm['gitlab']}",
+                        "committer_user_not_found"
                     ))
 
         # task issues
         if not task.get("issues"):
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
-                f"Task {task['id']}: no issue assigned to task."
+                f"Task {task['id']}: no issue assigned to task.",
+                "task_issue_missing"
             ))
 
 
@@ -299,21 +317,21 @@ def validate_report(
             expected_issue_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/issues/{issue['id']}"
             if issue["url"].lower() != expected_issue_url.lower():
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
-                    f"Task {task['id']}: issue URL must be '{expected_issue_url}', got '{issue['url']}'"
+                    f"Task {task['id']}: issue URL must be '{expected_issue_url}', got '{issue['url']}'",
+                    "task_issue_url_invalid"
                 ))
             else:
                 if not _issue_exists(gitlab_base, gitlab_token, project_path, issue["id"]):
                     errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT, 
-                        f"Task {task['id']}: issue does not exist (or no access): {issue['url']}"
+                        f"Task {task['id']}: issue does not exist (or no access): {issue['url']}",
+                        "task_issue_not_found"
                     ))
 
         # MRs
         if not task.get("mrs"):
             errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                f"Task {task['id']}: no merge request assigned to task."
-            ))
-            errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                f"Task {task['id']}: no merge request assigned to task 2 (To remove all percentage)."
+                f"Task {task['id']}: no merge request assigned to task.",
+                "task_mr_missing"
             ))
 
         first_mr = min(task["mrs"], key=lambda mr: mr["id"]) if task["mrs"] else None
@@ -321,14 +339,16 @@ def validate_report(
             expected_mr_url = f"{gitlab_base}/es/es26-{expected_suffix}/-/merge_requests/{mr['id']}"
             if mr["url"].lower() != expected_mr_url.lower():
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                    f"Task {task['id']}: MR URL must be '{expected_mr_url}', got '{mr['url']}'"
+                    f"Task {task['id']}: MR URL must be '{expected_mr_url}', got '{mr['url']}'",
+                    "mr_url_invalid"
                 ))
                 continue
 
             mr_data = _get_mr(gitlab_base, gitlab_token, project_path, mr["id"])
             if mr_data is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                    f"Task {task['id']}: MR does not exist (or no access): {mr['url']}"
+                    f"Task {task['id']}: MR does not exist (or no access): {mr['url']}",
+                    "mr_not_found"
                 ))
                 continue
 
@@ -339,7 +359,8 @@ def validate_report(
             if not isinstance(author_username, str) or author_username.lower() != committer_ist_id.lower():
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
                     f"Task {task['id']}, MR !{mr['id']}: MR author must be the committer "
-                    f"(expected {committer_ist_id}, got {author_username})."
+                    f"(expected {committer_ist_id}, got {author_username}).",
+                    "mr_author_not_committer"
                 ))
             
             # Assignee must be the same as commiter
@@ -347,22 +368,26 @@ def validate_report(
 
             if not assignees:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                    f"Task {task['id']}, MR !{mr['id']}: cannot determine assignee (no assignees)."
+                    f"Task {task['id']}, MR !{mr['id']}: cannot determine assignee (no assignees).",
+                    "mr_assignee_missing"
                 ))
             elif committer_ist_id.lower() not in {a.lower() for a in assignees}:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MERGE_REQUEST,
-                    f"Task {task['id']}, MR !{mr['id']}: committer ({committer_ist_id}) must be an assignee."
+                    f"Task {task['id']}, MR !{mr['id']}: committer ({committer_ist_id}) must be an assignee.",
+                    "mr_assignee_not_committer"
                 ))
 
             reviewers = _extract_usernames(mr_data.get("reviewers"))
 
             if not reviewers:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
-                    f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers)."
+                    f"Task {task['id']}, MR !{mr['id']}: cannot determine reviewer (no reviewers).",
+                    "reviewer_missing"
                 ))
             elif committer_ist_id.lower() in {r.lower() for r in reviewers}:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.REVIEW,
-                    f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({committer_ist_id})."
+                    f"Task {task['id']}, MR !{mr['id']}: reviewer equals committer ({committer_ist_id}).",
+                    "reviewer_equals_committer"
                 ))
 
             # Validate all commits in the MR
@@ -370,7 +395,8 @@ def validate_report(
             mr_java_diffs = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, mr['id'])
             if mr_commits is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
-                    f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits."
+                    f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits.",
+                    "mr_commits_fetch_failed"
                 ))
             else:
                 has_closes_reference = False
@@ -394,12 +420,14 @@ def validate_report(
                     if not commit_author_email.lower().endswith("@tecnico.ulisboa.pt") and not commit_author_email.lower().endswith("@rnl.tecnico.ulisboa.pt"):
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}, commit {commit_sha}: "
-                            f"commit author email must be from Técnico, got {commit_author_email}."
+                            f"commit author email must be from Técnico, got {commit_author_email}.",
+                            "commit_author_email_invalid"
                         ))
 
                 if not has_conventional_commit:
                     errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
-                        f"Task {task['id']}, MR !{mr['id']}: no commit message follows conventional commits format."
+                        f"Task {task['id']}, MR !{mr['id']}: no commit message follows conventional commits format.",
+                        "commit_message_not_conventional"
                     ))
 
                 if task_issue_id is not None and not has_closes_reference:
@@ -411,7 +439,8 @@ def validate_report(
                     if not sprint_2_closes:
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                             f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
-                            f"'Closes #{task_issue_id}'."
+                            f"'Closes #{task_issue_id}'.",
+                            "commit_missing_closes_issue"
                         ))
 
         # Check changed Java files only for the first MR (lowest MR id)
@@ -419,13 +448,15 @@ def validate_report(
             expected_task_files = expected_files_per_task.get(task["id"])
             if expected_task_files is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                    f"Task {task['id']}, MR !{first_mr['id']}: no expected files configured in files_per_task.json."
+                    f"Task {task['id']}, MR !{first_mr['id']}: no expected files configured in files_per_task.json.",
+                    "mr_files_config_missing"
                 ))
             else:
                 changed_java_paths = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, first_mr["id"])
                 if changed_java_paths is None:
                     errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                        f"Task {task['id']}, MR !{first_mr['id']}: could not fetch changed Java files."
+                        f"Task {task['id']}, MR !{first_mr['id']}: could not fetch changed Java files.",
+                        "mr_files_fetch_failed"
                     ))
                 else:
                     changed_java_files = {Path(path).name for path in changed_java_paths}
@@ -446,7 +477,11 @@ def validate_report(
                         unexpected_count = len(unexpected_files)
                         errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
                             f"Task {task['id']}, MR !{first_mr['id']}: contains {unexpected_count} unexpected changed "
-                            f"file(s) not listed in files_per_task.json: {', '.join(unexpected_files)}."
+                            f"file(s) not listed in files_per_task.json: {', '.join(unexpected_files)}.",
+                            "mr_files_unexpected_changes"
                         ))
+
+    for task_id, task_error_list in errors["task_errors"].items():
+        errors["task_errors"][task_id] = _deduplicate_task_errors(task_error_list)
 
     return errors

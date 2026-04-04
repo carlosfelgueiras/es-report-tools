@@ -30,3 +30,4 @@ class TaskError:
     task_id: str
     error_type: TaskErrorType
     message: str
+    error_key: str | None = None

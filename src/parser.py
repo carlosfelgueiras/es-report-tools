@@ -10,6 +10,12 @@ from error_report_html import write_error_report_html
 from error_report import TaskErrorType
 from report_types import Report, Issue, MR, CoverageScreenshot, Member, Committer, Group, Task
 
+
+FORCE_FULL_DEDUCTION_KEYS = {
+    "missing_committer",
+    "task_mr_missing",
+}
+
 Section = Literal["members", "coverage", "tasks"] | None
 TaskSection = Literal["committer", "commits", "reviews", "coverage"] | None
 
@@ -302,14 +308,23 @@ def main() -> None:
             task_id = str(task["id"])
             task_grade = 0
             for error_type in error_types:
-                number_of_error = 0
+                distinct_error_keys: set[str] = set()
                 if task_id in task_errors:
-                    errors_for_type = [te for te in task_errors[task_id] if te.error_type == error_type]
-                    number_of_error = len(errors_for_type)
+                    for te in task_errors[task_id]:
+                        if te.error_type != error_type:
+                            continue
+                        distinct_error_keys.add(te.error_key or te.message)
+                number_of_error = len(distinct_error_keys)
 
-                grade_dict = grade_config.get(error_type.value, 0)
-                percentage = grade_dict["percentage"]
-                max_errors = grade_dict["max_errors"]
+                grade_dict = grade_config.get(error_type.value, {})
+                percentage = grade_dict.get("percentage", 0)
+                max_errors = int(grade_dict.get("max_errors", 1) or 1)
+                if max_errors <= 0:
+                    max_errors = 1
+
+                if FORCE_FULL_DEDUCTION_KEYS.intersection(distinct_error_keys):
+                    number_of_error = max_errors
+
                 task_grade += percentage - min(percentage, percentage * number_of_error / max_errors)
             
             grades[task_id] = task_grade / 100.0

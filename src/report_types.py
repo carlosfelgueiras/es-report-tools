@@ -44,5 +44,5 @@ class Task(TypedDict):
 
 class Report(TypedDict):
     group: Group
-    total_coverage: CoverageScreenshot
+    total_coverage: CoverageScreenshot | None
     tasks: list[Task]

@@ -1,7 +1,7 @@
 import argparse
 import re
 import json
-from typing import Literal, TypedDict, cast
+from typing import Literal, cast
 import os
 import csv
 from pathlib import Path
@@ -275,7 +275,7 @@ def main() -> None:
     )
 
     # Run validation
-        
+
     errors = validate_report(
         report=result,
         markdown_path=args.input_path,
@@ -326,7 +326,7 @@ def main() -> None:
                     number_of_error = max_errors
 
                 task_grade += percentage - min(percentage, percentage * number_of_error / max_errors)
-            
+
             grades[task_id] = task_grade / 100.0
 
         with open(args.csv_report, "w", newline="", encoding="utf-8") as f:

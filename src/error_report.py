@@ -17,7 +17,6 @@ class TaskErrorType(Enum):
     MERGE_REQUEST = "Merge request"
     REVIEW = "Review"
     COMMIT = "Commit format and issue link"
-    MR_FILES = "MR changed files"
 
 @dataclass
 class GlobalError:

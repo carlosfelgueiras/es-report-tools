@@ -1,19 +1,16 @@
 # validation.py
 from __future__ import annotations
 
-import json
 import re
 import subprocess
 import requests
 
-from pathlib import Path
 from typing import List, Optional
 from urllib.parse import quote, urlencode
 from report_types import Report
 from error_report import GlobalError, TaskError, GlobalErrorType, TaskErrorType
 
 GITLAB_BASE = "https://gitlab.rnl.tecnico.ulisboa.pt"
-FILES_PER_TASK_PATH = Path(__file__).with_name("files_per_task.json")
 
 
 
@@ -153,31 +150,6 @@ def _lint_commit_message_with_cli(message: str) -> bool:
     return result.returncode == 0
 
 
-def _load_expected_files_per_task() -> dict[str, set[str]]:
-    """Load expected Java file names per task from files_per_task.json."""
-    try:
-        with FILES_PER_TASK_PATH.open("r", encoding="utf-8") as f:
-            raw = json.load(f)
-    except (OSError, ValueError):
-        return {}
-
-    if not isinstance(raw, dict):
-        return {}
-
-    expected_files: dict[str, set[str]] = {}
-    for task_id, files in raw.items():
-        if not isinstance(task_id, str) or not isinstance(files, list):
-            continue
-
-        expected_files[task_id] = {
-            file_name.strip()
-            for file_name in files
-            if isinstance(file_name, str) and file_name.strip()
-        }
-
-    return expected_files
-
-
 def _deduplicate_task_errors(task_errors: list[TaskError]) -> list[TaskError]:
     """Keep only the first occurrence of each distinct task error key per type."""
     seen_errors: set[tuple[TaskErrorType, str]] = set()
@@ -226,14 +198,10 @@ def validate_report(
     if not gitlab_token or not gitlab_token.strip():
         return ["Missing GITLAB_TOKEN: required to verify link existence via GitLab API."]
 
-    md_dir = Path(markdown_path).resolve().parent
-
     expected_suffix = f"{report['group']['campus'].lower()}-{report['group']['number']:02d}"
     project_path = f"es/es26-{expected_suffix}"
 
     member_ist_ids = {ist_id_fix(m["ist_id"]) for m in report["group"]["members"]}
-    expected_files_per_task = _load_expected_files_per_task()
-
     for task in report["tasks"]:
         errors["task_errors"][task['id']] = []
 
@@ -392,7 +360,6 @@ def validate_report(
 
             # Validate all commits in the MR
             mr_commits = _get_mr_commits(gitlab_base, gitlab_token, project_path, mr['id'])
-            mr_java_diffs = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, mr['id'])
             if mr_commits is None:
                 errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.COMMIT,
                     f"Task {task['id']}, MR !{mr['id']}: could not fetch MR commits.",
@@ -441,44 +408,6 @@ def validate_report(
                             f"Task {task['id']}, MR !{mr['id']}: no commit message contains "
                             f"'Closes #{task_issue_id}'.",
                             "commit_missing_closes_issue"
-                        ))
-
-        # Check changed Java files only for the first MR (lowest MR id)
-        if first_mr is not None:
-            expected_task_files = expected_files_per_task.get(task["id"])
-            if expected_task_files is None:
-                errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                    f"Task {task['id']}, MR !{first_mr['id']}: no expected files configured in files_per_task.json.",
-                    "mr_files_config_missing"
-                ))
-            else:
-                changed_java_paths = _get_mr_java_diffs(gitlab_base, gitlab_token, project_path, first_mr["id"])
-                if changed_java_paths is None:
-                    errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                        f"Task {task['id']}, MR !{first_mr['id']}: could not fetch changed Java files.",
-                        "mr_files_fetch_failed"
-                    ))
-                else:
-                    changed_java_files = {Path(path).name for path in changed_java_paths}
-                    expected_task_files_ci = {file_name.lower() for file_name in expected_task_files}
-
-                    # Match files case-insensitively, but keep original casing for reporting.
-                    changed_by_lower: dict[str, str] = {}
-                    for file_name in sorted(changed_java_files):
-                        changed_by_lower.setdefault(file_name.lower(), file_name)
-
-                    unexpected_files = sorted(
-                        original_name
-                        for lower_name, original_name in changed_by_lower.items()
-                        if lower_name not in expected_task_files_ci
-                    )
-
-                    if unexpected_files:
-                        unexpected_count = len(unexpected_files)
-                        errors["task_errors"][task['id']].append(TaskError(task['id'], TaskErrorType.MR_FILES,
-                            f"Task {task['id']}, MR !{first_mr['id']}: contains {unexpected_count} unexpected changed "
-                            f"file(s) not listed in files_per_task.json: {', '.join(unexpected_files)}.",
-                            "mr_files_unexpected_changes"
                         ))
 
     for task_id, task_error_list in errors["task_errors"].items():
